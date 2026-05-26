@@ -98,17 +98,23 @@ fun TrackStudioScreen(
             activeDragLayer = selectedSection,
             onDragCharacter = { dx, dy ->
                 draftConfig = limitAtmosphereConfig(
-                    draftConfig.copy(
-                        characterX = draftConfig.characterX + dx,
-                        characterY = draftConfig.characterY + dy
+                    syncPrimaryLayers(
+                        draftConfig.copy(
+                            characterX = draftConfig.characterX + dx,
+                            characterY = draftConfig.characterY + dy
+                        ),
+                        selectedLayerId
                     )
                 )
             },
             onDragText = { dx, dy ->
                 draftConfig = limitAtmosphereConfig(
-                    draftConfig.copy(
-                        overlayTextX = draftConfig.overlayTextX + dx,
-                        overlayTextY = draftConfig.overlayTextY + dy
+                    syncPrimaryLayers(
+                        draftConfig.copy(
+                            overlayTextX = draftConfig.overlayTextX + dx,
+                            overlayTextY = draftConfig.overlayTextY + dy
+                        ),
+                        selectedLayerId
                     )
                 )
             }
@@ -160,12 +166,14 @@ fun TrackStudioScreen(
 
             "Character" -> CharacterSection(
                 draftConfig = draftConfig,
-                onConfigChange = { draftConfig = limitAtmosphereConfig(it) }
+                selectedLayerId = selectedLayerId,
+                onConfigChange = { draftConfig = limitAtmosphereConfig(syncPrimaryLayers(it, selectedLayerId)) }
             )
 
             "Text" -> TextSection(
                 draftConfig = draftConfig,
-                onConfigChange = { draftConfig = limitAtmosphereConfig(it) }
+                selectedLayerId = selectedLayerId,
+                onConfigChange = { draftConfig = limitAtmosphereConfig(syncPrimaryLayers(it, selectedLayerId)) }
             )
 
             "Timing" -> TimingSection(
@@ -475,10 +483,18 @@ private fun timelineLayersFor(config: AtmosphereConfig): List<AtmosphereLayer> {
     return config.layers.map { layer ->
         when (layer.type) {
             AtmosphereLayerType.Text -> layer.copy(
-                name = if (config.overlayText.isBlank()) "Text cue" else config.overlayText,
-                startTime = config.overlayTextStart,
-                endTime = config.overlayTextEnd,
-                animationIn = config.overlayTextAnimation
+                name = if (layer.text.isBlank()) "Text cue" else layer.text,
+                text = layer.text.ifBlank { config.overlayText },
+                startTime = if (layer.id == "text-main") config.overlayTextStart else layer.startTime,
+                endTime = if (layer.id == "text-main") config.overlayTextEnd else layer.endTime,
+                x = if (layer.id == "text-main") config.overlayTextX else layer.x,
+                y = if (layer.id == "text-main") config.overlayTextY else layer.y,
+                animationIn = if (layer.id == "text-main") config.overlayTextAnimation else layer.animationIn
+            )
+            AtmosphereLayerType.Character -> layer.copy(
+                x = if (layer.id == "character-main") config.characterX else layer.x,
+                y = if (layer.id == "character-main") config.characterY else layer.y,
+                scale = if (layer.id == "character-main") config.characterSize / 100f else layer.scale
             )
             else -> layer
         }
@@ -523,10 +539,46 @@ private fun syncConfigWithLayer(
         AtmosphereLayerType.Text -> config.copy(
             overlayTextStart = layer.startTime,
             overlayTextEnd = layer.endTime,
-            overlayTextAnimation = layer.animationIn
+            overlayTextAnimation = layer.animationIn,
+            overlayTextX = layer.x,
+            overlayTextY = layer.y,
+            overlayText = layer.text
+        )
+        AtmosphereLayerType.Character -> config.copy(
+            characterX = layer.x,
+            characterY = layer.y,
+            characterSize = (layer.scale * 100f).coerceIn(70f, 150f)
         )
         else -> config
     }
+}
+
+private fun syncPrimaryLayers(
+    config: AtmosphereConfig,
+    selectedLayerId: String
+): AtmosphereConfig {
+    return config.copy(
+        layers = config.layers.map { layer ->
+            when {
+                layer.id == selectedLayerId && layer.type == AtmosphereLayerType.Character -> layer.copy(
+                    x = config.characterX,
+                    y = config.characterY,
+                    scale = config.characterSize / 100f,
+                    accentColor = config.accentColor
+                )
+                layer.id == selectedLayerId && layer.type == AtmosphereLayerType.Text -> layer.copy(
+                    x = config.overlayTextX,
+                    y = config.overlayTextY,
+                    text = config.overlayText,
+                    startTime = config.overlayTextStart,
+                    endTime = config.overlayTextEnd,
+                    animationIn = config.overlayTextAnimation,
+                    accentColor = config.accentColor
+                )
+                else -> layer
+            }
+        }
+    )
 }
 
 private fun duplicateSelectedLayer(
@@ -630,8 +682,11 @@ private fun SceneSection(
 @Composable
 private fun CharacterSection(
     draftConfig: AtmosphereConfig,
+    selectedLayerId: String,
     onConfigChange: (AtmosphereConfig) -> Unit
 ) {
+    val layer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId && it.type == AtmosphereLayerType.Character }
+
     StudioPanel(title = "Character layer") {
         StudioSlider(
             title = "Character size",
@@ -643,7 +698,7 @@ private fun CharacterSection(
         )
 
         Text(
-            text = "Drag the character directly in preview. Position: x=${draftConfig.characterX.roundToInt()}, y=${draftConfig.characterY.roundToInt()}",
+            text = "Layer: ${layer?.name ?: "Character"}. Drag in preview. Position: x=${draftConfig.characterX.roundToInt()}, y=${draftConfig.characterY.roundToInt()}",
             color = Color(0xFFA9A1B6)
         )
     }
@@ -652,8 +707,11 @@ private fun CharacterSection(
 @Composable
 private fun TextSection(
     draftConfig: AtmosphereConfig,
+    selectedLayerId: String,
     onConfigChange: (AtmosphereConfig) -> Unit
 ) {
+    val layer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId && it.type == AtmosphereLayerType.Text }
+
     StudioPanel(title = "Text cue") {
         OutlinedTextField(
             value = draftConfig.overlayText,
@@ -687,7 +745,7 @@ private fun TextSection(
         Spacer(modifier = Modifier.height(14.dp))
 
         Text(
-            text = "Drag the phrase directly in preview. Position: x=${draftConfig.overlayTextX.roundToInt()}, y=${draftConfig.overlayTextY.roundToInt()}",
+            text = "Layer: ${layer?.name ?: "Text cue"}. Drag in preview. Position: x=${draftConfig.overlayTextX.roundToInt()}, y=${draftConfig.overlayTextY.roundToInt()}",
             color = Color(0xFFA9A1B6)
         )
     }

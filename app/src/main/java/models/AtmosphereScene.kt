@@ -15,6 +15,12 @@ data class AtmosphereLayer(
     val startTime: Float,
     val endTime: Float,
     val assetRef: String = "",
+    val x: Float = 0f,
+    val y: Float = 0f,
+    val scale: Float = 1f,
+    val opacity: Float = 1f,
+    val text: String = "",
+    val accentColor: Long = 0xFF9B5CFF,
     val animationIn: String = "Fade",
     val animationOut: String = "Fade",
     val isVisible: Boolean = true
@@ -34,14 +40,19 @@ fun defaultAtmosphereLayers(): List<AtmosphereLayer> {
             name = "Character",
             startTime = 0f,
             endTime = 100f,
-            assetRef = "test-character.png"
+            assetRef = "test-character.png",
+            x = 0f,
+            y = -32f,
+            scale = 1.05f
         ),
         AtmosphereLayer(
             id = "text-main",
             type = AtmosphereLayerType.Text,
             name = "Text cue",
             startTime = 24f,
-            endTime = 42f
+            endTime = 42f,
+            y = -6f,
+            text = ""
         ),
         AtmosphereLayer(
             id = "effect-glow",
