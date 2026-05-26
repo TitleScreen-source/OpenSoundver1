@@ -1,9 +1,11 @@
 package com.opensound.app
 
+import android.graphics.Color as AndroidColor
 import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -38,6 +40,12 @@ import com.opensound.app.screens.UserProfileScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = AndroidColor.rgb(8, 7, 13)
+        window.navigationBarColor = AndroidColor.rgb(8, 7, 13)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
 
         setContent {
             OpenSoundApp()
