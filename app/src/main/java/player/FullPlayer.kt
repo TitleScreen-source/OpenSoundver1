@@ -139,6 +139,30 @@ fun FullPlayer(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            if (atmosphereConfig.overlayText.isNotBlank()) {
+                Text(
+                    text = atmosphereConfig.overlayText,
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .offset(
+                            x = (atmosphereConfig.overlayTextX * 0.55f).dp,
+                            y = (atmosphereConfig.overlayTextY * 0.55f).dp
+                        )
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(accentColor.copy(alpha = 0.24f))
+                        .border(
+                            width = 1.dp,
+                            color = accentColor.copy(alpha = 0.68f),
+                            shape = RoundedCornerShape(22.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+            }
+
             Text(
                 text = track.title,
                 color = Color.White,

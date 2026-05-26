@@ -7,16 +7,26 @@ data class AtmosphereConfig(
     val accentColor: Long = 0xFF9B5CFF,
     val glowIntensity: Float = 0.75f,
     val panelOpacity: Float = 0.92f,
-    val presetName: String = "Night"
+    val presetName: String = "Night",
+    val overlayText: String = "",
+    val overlayTextX: Float = 0f,
+    val overlayTextY: Float = -6f,
+    val overlayTextStart: Float = 24f,
+    val overlayTextEnd: Float = 42f,
+    val overlayTextAnimation: String = "Fade"
 )
 
 fun limitAtmosphereConfig(config: AtmosphereConfig): AtmosphereConfig {
     return config.copy(
-        characterX = config.characterX.coerceIn(-120f, 120f),
-        characterY = config.characterY.coerceIn(-90f, 0f),
+        characterX = config.characterX.coerceIn(-260f, 260f),
+        characterY = config.characterY.coerceIn(-155f, 70f),
         characterSize = config.characterSize.coerceIn(70f, 150f),
         glowIntensity = config.glowIntensity.coerceIn(0f, 1f),
-        panelOpacity = config.panelOpacity.coerceIn(0.55f, 1f)
+        panelOpacity = config.panelOpacity.coerceIn(0.55f, 1f),
+        overlayTextX = config.overlayTextX.coerceIn(-240f, 240f),
+        overlayTextY = config.overlayTextY.coerceIn(-55f, 105f),
+        overlayTextStart = config.overlayTextStart.coerceIn(0f, 100f),
+        overlayTextEnd = config.overlayTextEnd.coerceIn(0f, 100f)
     )
 }
 

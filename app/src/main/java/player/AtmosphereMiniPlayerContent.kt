@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -14,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,17 +35,69 @@ fun AtmosphereMiniPlayerContent(
     atmosphereConfig: AtmosphereConfig,
     onPlayPauseClick: () -> Unit,
     onOpenFullPlayer: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    currentTimeSeconds: Float? = null,
+    editorDragMode: String? = null,
+    onCharacterDrag: ((Float, Float) -> Unit)? = null,
+    onTextDrag: ((Float, Float) -> Unit)? = null
 ) {
     val panelShape = RoundedCornerShape(22.dp)
     val accentColor = Color(atmosphereConfig.accentColor)
     val panelAlpha = atmosphereConfig.panelOpacity
+    val showOverlayText = atmosphereConfig.overlayText.isNotBlank() &&
+        (currentTimeSeconds == null ||
+            currentTimeSeconds in atmosphereConfig.overlayTextStart..atmosphereConfig.overlayTextEnd)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(112.dp)
+            .then(
+                when (editorDragMode) {
+                    "Character" -> Modifier.pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            onCharacterDrag?.invoke(dragAmount.x, dragAmount.y)
+                        }
+                    }
+
+                    "Text" -> Modifier.pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            onTextDrag?.invoke(dragAmount.x, dragAmount.y)
+                        }
+                    }
+
+                    else -> Modifier
+                }
+            )
     ) {
+        if (showOverlayText) {
+            Text(
+                text = atmosphereConfig.overlayText,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset {
+                        IntOffset(
+                            atmosphereConfig.overlayTextX.roundToInt(),
+                            atmosphereConfig.overlayTextY.roundToInt()
+                        )
+                    }
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(accentColor.copy(alpha = 0.28f))
+                    .border(
+                        width = 1.dp,
+                        color = accentColor.copy(alpha = 0.72f),
+                        shape = RoundedCornerShape(18.dp)
+                    )
+                    .padding(horizontal = 14.dp, vertical = 7.dp)
+                    .zIndex(5f)
+            )
+        }
+
         CharacterGlow(
             modifier = Modifier
                 .size((atmosphereConfig.characterSize + 42).dp)
@@ -102,6 +156,7 @@ fun AtmosphereMiniPlayerContent(
                     shape = panelShape
                 )
                 .clickable { onOpenFullPlayer() }
+                .zIndex(1f)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.cover),
@@ -126,12 +181,19 @@ fun AtmosphereMiniPlayerContent(
                     )
                     .zIndex(1f)
             )
+        }
 
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .align(Alignment.BottomCenter)
+                .zIndex(4f)
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 14.dp)
-                    .zIndex(2f),
+                    .padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
@@ -182,7 +244,6 @@ fun AtmosphereMiniPlayerContent(
                     .fillMaxWidth(0.38f)
                     .height(3.dp)
                     .background(accentColor)
-                    .zIndex(3f)
             )
         }
     }
