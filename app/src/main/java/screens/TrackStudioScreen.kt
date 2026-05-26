@@ -119,6 +119,7 @@ fun TrackStudioScreen(
         TimelinePanel(
             layers = timelineLayersFor(draftConfig),
             previewTimeSeconds = previewTimeSeconds,
+            onPreviewTimeChange = { previewTimeSeconds = it },
             selectedLayerId = selectedLayerId,
             onLayerSelected = { layer ->
                 selectedLayerId = layer.id
@@ -161,7 +162,6 @@ fun TrackStudioScreen(
                 draftConfig = draftConfig,
                 selectedLayer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId },
                 previewTimeSeconds = previewTimeSeconds,
-                onPreviewTimeChange = { previewTimeSeconds = it },
                 onConfigChange = { draftConfig = limitAtmosphereConfig(it) },
                 onLayerChange = { updatedLayer ->
                     draftConfig = limitAtmosphereConfig(
@@ -277,12 +277,38 @@ private fun PreviewCard(
 private fun TimelinePanel(
     layers: List<AtmosphereLayer>,
     previewTimeSeconds: Float,
+    onPreviewTimeChange: (Float) -> Unit,
     selectedLayerId: String,
     onLayerSelected: (AtmosphereLayer) -> Unit
 ) {
+    val selectedLayer = layers.firstOrNull { it.id == selectedLayerId }
+
     StudioPanel(title = "Atmosphere timeline") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            TimelineActionButton("+ Layer", modifier = Modifier.weight(1f))
+            TimelineActionButton("Duplicate", modifier = Modifier.weight(1f))
+            TimelineActionButton("Delete", modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         Text(
-            text = "Tap a clip to edit that layer. Playhead: ${previewTimeSeconds.roundToInt()}s",
+            text = "Playhead: ${previewTimeSeconds.roundToInt()}s" +
+                if (selectedLayer != null) " • Selected: ${selectedLayer.name}" else "",
+            color = Color(0xFFA9A1B6)
+        )
+
+        Slider(
+            value = previewTimeSeconds,
+            onValueChange = onPreviewTimeChange,
+            valueRange = 0f..100f
+        )
+
+        Text(
+            text = "Tap a clip to edit that layer.",
             color = Color(0xFFA9A1B6)
         )
 
@@ -297,6 +323,32 @@ private fun TimelinePanel(
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
+    }
+}
+
+@Composable
+private fun TimelineActionButton(
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(38.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White.copy(alpha = 0.07f))
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable { },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -608,7 +660,6 @@ private fun TimingSection(
     draftConfig: AtmosphereConfig,
     selectedLayer: AtmosphereLayer?,
     previewTimeSeconds: Float,
-    onPreviewTimeChange: (Float) -> Unit,
     onConfigChange: (AtmosphereConfig) -> Unit,
     onLayerChange: (AtmosphereLayer) -> Unit
 ) {
@@ -621,15 +672,6 @@ private fun TimingSection(
         )
 
         Spacer(modifier = Modifier.height(12.dp))
-
-        StudioSlider(
-            title = "Preview time",
-            value = previewTimeSeconds,
-            valueRange = 0f..100f,
-            onValueChange = onPreviewTimeChange
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         StudioSlider(
             title = "Start time",
