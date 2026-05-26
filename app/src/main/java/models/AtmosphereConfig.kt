@@ -13,7 +13,8 @@ data class AtmosphereConfig(
     val overlayTextY: Float = -6f,
     val overlayTextStart: Float = 24f,
     val overlayTextEnd: Float = 42f,
-    val overlayTextAnimation: String = "Fade"
+    val overlayTextAnimation: String = "Fade",
+    val layers: List<AtmosphereLayer> = defaultAtmosphereLayers()
 )
 
 fun limitAtmosphereConfig(config: AtmosphereConfig): AtmosphereConfig {

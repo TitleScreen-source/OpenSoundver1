@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -43,6 +44,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.opensound.app.models.AtmosphereConfig
+import com.opensound.app.models.AtmosphereLayer
+import com.opensound.app.models.AtmosphereLayerType
 import com.opensound.app.models.Track
 import com.opensound.app.models.atmospherePresets
 import com.opensound.app.models.limitAtmosphereConfig
@@ -105,6 +108,23 @@ fun TrackStudioScreen(
                         overlayTextY = draftConfig.overlayTextY + dy
                     )
                 )
+            }
+        )
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        TimelinePanel(
+            layers = timelineLayersFor(draftConfig),
+            previewTimeSeconds = previewTimeSeconds,
+            selectedSection = selectedSection,
+            onLayerSelected = { layer ->
+                selectedSection = when (layer.type) {
+                    AtmosphereLayerType.Character -> "Character"
+                    AtmosphereLayerType.Text -> "Text"
+                    AtmosphereLayerType.Effect -> "Scene"
+                    AtmosphereLayerType.Background -> "Assets"
+                    AtmosphereLayerType.Wave -> "Timing"
+                }
             }
         )
 
@@ -237,6 +257,120 @@ private fun PreviewCard(
 }
 
 @Composable
+private fun TimelinePanel(
+    layers: List<AtmosphereLayer>,
+    previewTimeSeconds: Float,
+    selectedSection: String,
+    onLayerSelected: (AtmosphereLayer) -> Unit
+) {
+    StudioPanel(title = "Atmosphere timeline") {
+        Text(
+            text = "Tap a clip to edit that layer. Playhead: ${previewTimeSeconds.roundToInt()}s",
+            color = Color(0xFFA9A1B6)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        layers.forEach { layer ->
+            TimelineLayerRow(
+                layer = layer,
+                previewTimeSeconds = previewTimeSeconds,
+                isSelected = selectedSection == sectionForLayer(layer),
+                onClick = { onLayerSelected(layer) }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun TimelineLayerRow(
+    layer: AtmosphereLayer,
+    previewTimeSeconds: Float,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val accentColor = colorForLayer(layer.type)
+    val duration = 100f
+    val clipStart = layer.startTime.coerceIn(0f, duration)
+    val minClipEnd = (clipStart + 1f).coerceAtMost(duration)
+    val clipEnd = layer.endTime.coerceIn(clipStart, duration).coerceAtLeast(minClipEnd)
+    val playhead = previewTimeSeconds.coerceIn(0f, duration)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = layer.name,
+            color = Color(0xFFC8BED8),
+            maxLines = 1,
+            modifier = Modifier.width(82.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(30.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White.copy(alpha = 0.05f))
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.07f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+        ) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                if (clipStart > 0f) {
+                    Spacer(modifier = Modifier.weight(clipStart))
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight((clipEnd - clipStart).coerceAtLeast(1f))
+                        .height(30.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(accentColor.copy(alpha = if (isSelected) 0.72f else 0.42f))
+                        .border(
+                            width = if (isSelected) 2.dp else 1.dp,
+                            color = if (isSelected) Color.White.copy(alpha = 0.55f) else accentColor.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clickable { onClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = clipLabel(layer),
+                        color = Color.White,
+                        maxLines = 1,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+
+                if (duration - clipEnd > 0f) {
+                    Spacer(modifier = Modifier.weight(duration - clipEnd))
+                }
+            }
+
+            Row(modifier = Modifier.fillMaxSize()) {
+                if (playhead > 0f) {
+                    Spacer(modifier = Modifier.weight(playhead))
+                }
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(30.dp)
+                        .background(Color.White.copy(alpha = 0.85f))
+                )
+                if (duration - playhead > 0f) {
+                    Spacer(modifier = Modifier.weight(duration - playhead))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun StudioSections(
     selectedSection: String,
     onSectionSelected: (String) -> Unit
@@ -249,6 +383,50 @@ private fun StudioSections(
                 onClick = { onSectionSelected(section) }
             )
         }
+    }
+}
+
+private fun timelineLayersFor(config: AtmosphereConfig): List<AtmosphereLayer> {
+    return config.layers.map { layer ->
+        when (layer.type) {
+            AtmosphereLayerType.Text -> layer.copy(
+                name = if (config.overlayText.isBlank()) "Text cue" else config.overlayText,
+                startTime = config.overlayTextStart,
+                endTime = config.overlayTextEnd,
+                animationIn = config.overlayTextAnimation
+            )
+            else -> layer
+        }
+    }
+}
+
+private fun sectionForLayer(layer: AtmosphereLayer): String {
+    return when (layer.type) {
+        AtmosphereLayerType.Character -> "Character"
+        AtmosphereLayerType.Text -> "Text"
+        AtmosphereLayerType.Effect -> "Scene"
+        AtmosphereLayerType.Background -> "Assets"
+        AtmosphereLayerType.Wave -> "Timing"
+    }
+}
+
+private fun clipLabel(layer: AtmosphereLayer): String {
+    return when (layer.type) {
+        AtmosphereLayerType.Character -> "PNG"
+        AtmosphereLayerType.Text -> layer.name
+        AtmosphereLayerType.Effect -> layer.animationOut
+        AtmosphereLayerType.Background -> "BG"
+        AtmosphereLayerType.Wave -> "Wave"
+    }
+}
+
+private fun colorForLayer(type: AtmosphereLayerType): Color {
+    return when (type) {
+        AtmosphereLayerType.Character -> Color(0xFF8A5CFF)
+        AtmosphereLayerType.Text -> Color(0xFFB85CFF)
+        AtmosphereLayerType.Effect -> Color(0xFFFF4D8D)
+        AtmosphereLayerType.Background -> Color(0xFF4D8DFF)
+        AtmosphereLayerType.Wave -> Color(0xFF19D3C5)
     }
 }
 
