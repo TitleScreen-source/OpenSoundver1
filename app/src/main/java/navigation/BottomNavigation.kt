@@ -29,9 +29,10 @@ fun BottomNavigation(
 ) {
     Row(
         modifier = modifier
+            .navigationBarsPadding()
+            .padding(bottom = 8.dp)
             .fillMaxWidth()
             .height(86.dp)
-            .navigationBarsPadding()
             .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
             .background(Color(0xF2080710))
             .border(
@@ -46,7 +47,7 @@ fun BottomNavigation(
         BottomItem(
             selected = currentScreen == "home",
             icon = "H",
-            label = "Главная",
+            label = "\u0413\u043B\u0430\u0432\u043D\u0430\u044F",
             onClick = { onScreenSelected("home") },
             modifier = Modifier.weight(1f)
         )
@@ -54,7 +55,7 @@ fun BottomNavigation(
         BottomItem(
             selected = currentScreen == "search",
             icon = "S",
-            label = "Поиск",
+            label = "\u041F\u043E\u0438\u0441\u043A",
             onClick = { onScreenSelected("search") },
             modifier = Modifier.weight(1f)
         )
@@ -62,7 +63,7 @@ fun BottomNavigation(
         BottomItem(
             selected = currentScreen == "library",
             icon = "M",
-            label = "Библиотека",
+            label = "\u0411\u0438\u0431\u043B\u0438\u043E\u0442\u0435\u043A\u0430",
             onClick = { onScreenSelected("library") },
             modifier = Modifier.weight(1f)
         )
@@ -70,7 +71,7 @@ fun BottomNavigation(
         BottomItem(
             selected = currentScreen == "profile" || currentScreen == "studio",
             icon = "P",
-            label = "Профиль",
+            label = "\u041F\u0440\u043E\u0444\u0438\u043B\u044C",
             onClick = { onScreenSelected("profile") },
             modifier = Modifier.weight(1f)
         )

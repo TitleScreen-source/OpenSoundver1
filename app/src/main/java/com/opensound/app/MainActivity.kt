@@ -1,11 +1,14 @@
 package com.opensound.app
 
+import android.app.Activity
 import android.graphics.Color as AndroidColor
 import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.DisposableEffect
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -55,6 +58,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun OpenSoundApp() {
     val context = LocalContext.current
+    val activity = context as? Activity
 
     val mediaPlayer = remember {
         MediaPlayer.create(context, R.raw.track1)
@@ -94,6 +98,24 @@ fun OpenSoundApp() {
 
     val selectedAtmosphereConfig = atmosphereConfigs[selectedTrack.title] ?: AtmosphereConfig()
     val showPersistentPlayer = currentScreen != "studio"
+
+    DisposableEffect(isFullPlayerOpen, activity) {
+        val controller = activity?.window?.let { window ->
+            WindowInsetsControllerCompat(window, window.decorView)
+        }
+
+        if (isFullPlayerOpen) {
+            controller?.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller?.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller?.show(WindowInsetsCompat.Type.systemBars())
+        }
+
+        onDispose {
+            controller?.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
 
     fun togglePlay() {
         if (mediaPlayer.isPlaying) {

@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -60,6 +63,8 @@ fun TrackStudioScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF08070D))
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 28.dp)
     ) {
         Row(
@@ -82,7 +87,7 @@ fun TrackStudioScreen(
             }
 
             TextButton(onClick = onClose) {
-                Text("Закрыть", color = Color.White)
+                Text("\u0417\u0430\u043A\u0440\u044B\u0442\u044C", color = Color.White)
             }
         }
 
@@ -209,7 +214,7 @@ fun TrackStudioScreen(
             color = Color(0xFFA9A1B6)
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextButton(
@@ -226,6 +231,8 @@ fun TrackStudioScreen(
                 Text("Save atmosphere")
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
