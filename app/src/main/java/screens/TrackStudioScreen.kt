@@ -68,6 +68,9 @@ fun TrackStudioScreen(
     var previewTimeSeconds by remember {
         mutableStateOf(24f)
     }
+    var selectedLayerId by remember {
+        mutableStateOf("text-main")
+    }
 
     Column(
         modifier = Modifier
@@ -116,8 +119,9 @@ fun TrackStudioScreen(
         TimelinePanel(
             layers = timelineLayersFor(draftConfig),
             previewTimeSeconds = previewTimeSeconds,
-            selectedSection = selectedSection,
+            selectedLayerId = selectedLayerId,
             onLayerSelected = { layer ->
+                selectedLayerId = layer.id
                 selectedSection = when (layer.type) {
                     AtmosphereLayerType.Character -> "Character"
                     AtmosphereLayerType.Text -> "Text"
@@ -155,9 +159,22 @@ fun TrackStudioScreen(
 
             "Timing" -> TimingSection(
                 draftConfig = draftConfig,
+                selectedLayer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId },
                 previewTimeSeconds = previewTimeSeconds,
                 onPreviewTimeChange = { previewTimeSeconds = it },
-                onConfigChange = { draftConfig = limitAtmosphereConfig(it) }
+                onConfigChange = { draftConfig = limitAtmosphereConfig(it) },
+                onLayerChange = { updatedLayer ->
+                    draftConfig = limitAtmosphereConfig(
+                        syncConfigWithLayer(
+                            config = draftConfig.copy(
+                                layers = draftConfig.layers.map { layer ->
+                                    if (layer.id == updatedLayer.id) updatedLayer else layer
+                                }
+                            ),
+                            layer = updatedLayer
+                        )
+                    )
+                }
             )
 
             "Assets" -> AssetsSection(
@@ -260,7 +277,7 @@ private fun PreviewCard(
 private fun TimelinePanel(
     layers: List<AtmosphereLayer>,
     previewTimeSeconds: Float,
-    selectedSection: String,
+    selectedLayerId: String,
     onLayerSelected: (AtmosphereLayer) -> Unit
 ) {
     StudioPanel(title = "Atmosphere timeline") {
@@ -275,7 +292,7 @@ private fun TimelinePanel(
             TimelineLayerRow(
                 layer = layer,
                 previewTimeSeconds = previewTimeSeconds,
-                isSelected = selectedSection == sectionForLayer(layer),
+                isSelected = selectedLayerId == layer.id,
                 onClick = { onLayerSelected(layer) }
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -430,6 +447,20 @@ private fun colorForLayer(type: AtmosphereLayerType): Color {
     }
 }
 
+private fun syncConfigWithLayer(
+    config: AtmosphereConfig,
+    layer: AtmosphereLayer
+): AtmosphereConfig {
+    return when (layer.type) {
+        AtmosphereLayerType.Text -> config.copy(
+            overlayTextStart = layer.startTime,
+            overlayTextEnd = layer.endTime,
+            overlayTextAnimation = layer.animationIn
+        )
+        else -> config
+    }
+}
+
 @Composable
 private fun SceneSection(
     draftConfig: AtmosphereConfig,
@@ -575,13 +606,17 @@ private fun TextSection(
 @Composable
 private fun TimingSection(
     draftConfig: AtmosphereConfig,
+    selectedLayer: AtmosphereLayer?,
     previewTimeSeconds: Float,
     onPreviewTimeChange: (Float) -> Unit,
-    onConfigChange: (AtmosphereConfig) -> Unit
+    onConfigChange: (AtmosphereConfig) -> Unit,
+    onLayerChange: (AtmosphereLayer) -> Unit
 ) {
-    StudioPanel(title = "Timeline cue") {
+    val layer = selectedLayer ?: timelineLayersFor(draftConfig).first()
+
+    StudioPanel(title = "Selected clip") {
         Text(
-            text = "Text appears from ${draftConfig.overlayTextStart.roundToInt()}s to ${draftConfig.overlayTextEnd.roundToInt()}s",
+            text = "${layer.name} • ${layer.startTime.roundToInt()}s to ${layer.endTime.roundToInt()}s",
             color = Color(0xFFC8BED8)
         )
 
@@ -598,13 +633,13 @@ private fun TimingSection(
 
         StudioSlider(
             title = "Start time",
-            value = draftConfig.overlayTextStart,
+            value = layer.startTime,
             valueRange = 0f..100f,
             onValueChange = {
-                onConfigChange(
-                    draftConfig.copy(
-                        overlayTextStart = it,
-                        overlayTextEnd = draftConfig.overlayTextEnd.coerceAtLeast(it + 2f)
+                onLayerChange(
+                    layer.copy(
+                        startTime = it,
+                        endTime = layer.endTime.coerceAtLeast(it + 2f)
                     )
                 )
             }
@@ -612,16 +647,52 @@ private fun TimingSection(
 
         StudioSlider(
             title = "End time",
-            value = draftConfig.overlayTextEnd,
+            value = layer.endTime,
             valueRange = 0f..100f,
             onValueChange = {
-                onConfigChange(
-                    draftConfig.copy(
-                        overlayTextEnd = it.coerceAtLeast(draftConfig.overlayTextStart + 2f)
+                onLayerChange(
+                    layer.copy(
+                        endTime = it.coerceAtLeast(layer.startTime + 2f)
                     )
                 )
             }
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text("Animation in", color = Color.White, fontWeight = FontWeight.SemiBold)
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(listOf("Fade", "Rise", "Pulse")) { animation ->
+                SectionChip(
+                    name = animation,
+                    selected = layer.animationIn == animation,
+                    onClick = {
+                        onLayerChange(layer.copy(animationIn = animation))
+                    }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text("Animation out", color = Color.White, fontWeight = FontWeight.SemiBold)
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(listOf("Fade", "Glitch", "Cut")) { animation ->
+                SectionChip(
+                    name = animation,
+                    selected = layer.animationOut == animation,
+                    onClick = {
+                        onLayerChange(layer.copy(animationOut = animation))
+                    }
+                )
+            }
+        }
     }
 }
 
