@@ -85,6 +85,7 @@ fun OpenSoundApp() {
     }
 
     val selectedAtmosphereConfig = atmosphereConfigs[selectedTrack.title] ?: AtmosphereConfig()
+    val showPersistentPlayer = currentScreen != "studio"
 
     fun togglePlay() {
         if (mediaPlayer.isPlaying) {
@@ -171,29 +172,32 @@ fun OpenSoundApp() {
                 )
             }
 
-            MiniPlayer(
-                atmosphereConfig = selectedAtmosphereConfig,
-                track = selectedTrack,
-                isPlaying = isPlaying,
-                onPlayPauseClick = {
-                    togglePlay()
-                },
-                onOpenFullPlayer = {
-                    isFullPlayerOpen = true
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .zIndex(2f)
-            )
-            BottomNavigation(
-                currentScreen = currentScreen,
-                onScreenSelected = { screen ->
-                    currentScreen = screen
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .zIndex(1f)
-            )
+            if (showPersistentPlayer) {
+                MiniPlayer(
+                    atmosphereConfig = selectedAtmosphereConfig,
+                    track = selectedTrack,
+                    isPlaying = isPlaying,
+                    onPlayPauseClick = {
+                        togglePlay()
+                    },
+                    onOpenFullPlayer = {
+                        isFullPlayerOpen = true
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .zIndex(2f)
+                )
+
+                BottomNavigation(
+                    currentScreen = currentScreen,
+                    onScreenSelected = { screen ->
+                        currentScreen = screen
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .zIndex(1f)
+                )
+            }
 
             AnimatedVisibility(
                 visible = isFullPlayerOpen,

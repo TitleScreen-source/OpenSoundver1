@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -17,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun BottomNavigation(
@@ -27,6 +29,7 @@ fun BottomNavigation(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .height(86.dp)
             .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
             .background(Color(0xF2080710))
             .border(
@@ -85,21 +88,27 @@ private fun BottomItem(
 
     Column(
         modifier = modifier
+            .height(62.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(if (selected) Color(0x229B5CFF) else Color.Transparent)
             .clickable { onClick() }
-            .padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 2.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = icon,
             color = if (selected) activeColor else inactiveColor,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            maxLines = 1
         )
         Text(
             text = label,
             color = if (selected) activeColor else inactiveColor,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            fontSize = 11.sp,
+            maxLines = 1
         )
     }
 }
