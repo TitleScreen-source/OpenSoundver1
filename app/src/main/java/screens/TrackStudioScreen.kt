@@ -121,6 +121,16 @@ fun TrackStudioScreen(
             previewTimeSeconds = previewTimeSeconds,
             onPreviewTimeChange = { previewTimeSeconds = it },
             selectedLayerId = selectedLayerId,
+            onDuplicateLayer = {
+                duplicateSelectedLayer(
+                    config = draftConfig,
+                    selectedLayerId = selectedLayerId
+                )?.let { result ->
+                    draftConfig = result.first
+                    selectedLayerId = result.second
+                    selectedSection = "Timing"
+                }
+            },
             onLayerSelected = { layer ->
                 selectedLayerId = layer.id
                 selectedSection = when (layer.type) {
@@ -279,6 +289,7 @@ private fun TimelinePanel(
     previewTimeSeconds: Float,
     onPreviewTimeChange: (Float) -> Unit,
     selectedLayerId: String,
+    onDuplicateLayer: () -> Unit,
     onLayerSelected: (AtmosphereLayer) -> Unit
 ) {
     val selectedLayer = layers.firstOrNull { it.id == selectedLayerId }
@@ -289,7 +300,11 @@ private fun TimelinePanel(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             TimelineActionButton("+ Layer", modifier = Modifier.weight(1f))
-            TimelineActionButton("Duplicate", modifier = Modifier.weight(1f))
+            TimelineActionButton(
+                label = "Duplicate",
+                modifier = Modifier.weight(1f),
+                onClick = onDuplicateLayer
+            )
             TimelineActionButton("Delete", modifier = Modifier.weight(1f))
         }
 
@@ -329,7 +344,8 @@ private fun TimelinePanel(
 @Composable
 private fun TimelineActionButton(
     label: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     Box(
         modifier = modifier
@@ -341,7 +357,7 @@ private fun TimelineActionButton(
                 color = Color.White.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(14.dp)
             )
-            .clickable { },
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -511,6 +527,28 @@ private fun syncConfigWithLayer(
         )
         else -> config
     }
+}
+
+private fun duplicateSelectedLayer(
+    config: AtmosphereConfig,
+    selectedLayerId: String
+): Pair<AtmosphereConfig, String>? {
+    val selectedLayer = config.layers.firstOrNull { it.id == selectedLayerId } ?: return null
+    val copyIndex = config.layers.count { it.id.startsWith("${selectedLayer.id}-copy") } + 1
+    val duration = (selectedLayer.endTime - selectedLayer.startTime).coerceAtLeast(2f)
+    val newStart = (selectedLayer.startTime + 4f).coerceIn(0f, 98f)
+    val newEnd = (newStart + duration).coerceIn(newStart + 2f, 100f)
+    val newId = "${selectedLayer.id}-copy-$copyIndex"
+    val duplicatedLayer = selectedLayer.copy(
+        id = newId,
+        name = "${selectedLayer.name} Copy",
+        startTime = newStart,
+        endTime = newEnd.coerceAtLeast(newStart + 2f)
+    )
+
+    return config.copy(
+        layers = config.layers + duplicatedLayer
+    ) to newId
 }
 
 @Composable
