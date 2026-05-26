@@ -24,12 +24,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
+import com.opensound.app.models.atmospherePresets
 import com.opensound.app.navigation.BottomNavigation
 import com.opensound.app.player.FullPlayer
 import com.opensound.app.player.MiniPlayer
 import com.opensound.app.screens.ArtistProfileScreen
 import com.opensound.app.screens.HomeScreen
+import com.opensound.app.screens.LibraryScreen
+import com.opensound.app.screens.SearchScreen
 import com.opensound.app.screens.TrackStudioScreen
+import com.opensound.app.screens.UserProfileScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,9 +73,18 @@ fun OpenSoundApp() {
     var currentScreen by remember {
         mutableStateOf("home")
     }
-    var atmosphereConfig by remember {
-        mutableStateOf(AtmosphereConfig())
+    var atmosphereConfigs by remember {
+        mutableStateOf(
+            mapOf(
+                "Night Drive" to atmospherePresets[0],
+                "Lost Signal" to atmospherePresets[1],
+                "Echo Dreams" to atmospherePresets[2],
+                "Midnight City" to atmospherePresets[3]
+            )
+        )
     }
+
+    val selectedAtmosphereConfig = atmosphereConfigs[selectedTrack.title] ?: AtmosphereConfig()
 
     fun togglePlay() {
         if (mediaPlayer.isPlaying) {
@@ -117,26 +130,41 @@ fun OpenSoundApp() {
                     }
                 )
                 "studio" -> TrackStudioScreen(
-                    initialConfig = atmosphereConfig,
+                    track = selectedTrack,
+                    initialConfig = selectedAtmosphereConfig,
                     onSave = { newConfig ->
-                        atmosphereConfig = newConfig
+                        atmosphereConfigs = atmosphereConfigs + (selectedTrack.title to newConfig)
                         currentScreen = "profile"
                     },
                     onClose = {
                         currentScreen = "profile"
                     }
                 )
-                "search" -> HomeScreen(
+                "search" -> SearchScreen(
+                    tracks = tracks,
+                    onTrackClick = { track ->
+                        selectedTrack = track
+                        if (!mediaPlayer.isPlaying) {
+                            mediaPlayer.start()
+                            isPlaying = true
+                        }
+                    }
+                )
+
+                "library" -> LibraryScreen(
                     tracks = tracks,
                     selectedTrack = selectedTrack,
                     onTrackClick = { track ->
                         selectedTrack = track
+                        if (!mediaPlayer.isPlaying) {
+                            mediaPlayer.start()
+                            isPlaying = true
+                        }
                     }
                 )
 
-                "library" -> HomeScreen(
+                "userProfile" -> UserProfileScreen(
                     tracks = tracks,
-                    selectedTrack = selectedTrack,
                     onTrackClick = { track ->
                         selectedTrack = track
                     }
@@ -144,7 +172,7 @@ fun OpenSoundApp() {
             }
 
             MiniPlayer(
-                atmosphereConfig = atmosphereConfig,
+                atmosphereConfig = selectedAtmosphereConfig,
                 track = selectedTrack,
                 isPlaying = isPlaying,
                 onPlayPauseClick = {
@@ -180,6 +208,7 @@ fun OpenSoundApp() {
                 FullPlayer(
                     track = selectedTrack,
                     isPlaying = isPlaying,
+                    atmosphereConfig = selectedAtmosphereConfig,
                     onPlayPauseClick = {
                         togglePlay()
                     },
@@ -192,4 +221,3 @@ fun OpenSoundApp() {
         }
     }
 }
-

@@ -34,16 +34,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.opensound.app.R
+import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
 
 @Composable
 fun FullPlayer(
     track: Track,
     isPlaying: Boolean,
+    atmosphereConfig: AtmosphereConfig,
     onPlayPauseClick: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val accentColor = Color(atmosphereConfig.accentColor)
+
     Box(
         modifier = modifier
             .background(Color(0xFF08070D))
@@ -86,8 +90,8 @@ fun FullPlayer(
                 .background(
                     Brush.radialGradient(
                         listOf(
-                            Color(0x779B5CFF),
-                            Color(0x229B5CFF),
+                            accentColor.copy(alpha = 0.52f * atmosphereConfig.glowIntensity),
+                            accentColor.copy(alpha = 0.18f * atmosphereConfig.glowIntensity),
                             Color.Transparent
                         )
                     )
@@ -100,9 +104,10 @@ fun FullPlayer(
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(430.dp)
+                .height((atmosphereConfig.characterSize * 4.1f).dp)
                 .align(Alignment.TopCenter)
                 .padding(top = 82.dp)
+                .offset(x = (atmosphereConfig.characterX * 0.35f).dp)
         )
 
         Column(
@@ -159,7 +164,7 @@ fun FullPlayer(
                         .clip(RoundedCornerShape(20.dp))
                         .background(
                             Brush.horizontalGradient(
-                                listOf(Color(0xFF7D45F6), Color(0xFFB768FF))
+                                listOf(accentColor.copy(alpha = 0.82f), accentColor)
                             )
                         )
                 )
@@ -184,7 +189,11 @@ fun FullPlayer(
             ) {
                 PlayerIconButton("SH", 46.dp, onClick = {})
                 PlayerIconButton("<<", 54.dp, onClick = {})
-                PlayButton(isPlaying = isPlaying, onClick = onPlayPauseClick)
+                PlayButton(
+                    isPlaying = isPlaying,
+                    accentColor = accentColor,
+                    onClick = onPlayPauseClick
+                )
                 PlayerIconButton(">>", 54.dp, onClick = {})
                 PlayerIconButton("RE", 46.dp, onClick = {})
             }
@@ -207,6 +216,7 @@ fun FullPlayer(
 @Composable
 private fun PlayButton(
     isPlaying: Boolean,
+    accentColor: Color,
     onClick: () -> Unit
 ) {
     Box(
@@ -216,7 +226,7 @@ private fun PlayButton(
             .clip(CircleShape)
             .background(
                 Brush.radialGradient(
-                    listOf(Color(0xFFB679FF), Color(0xFF7D45F6))
+                    listOf(accentColor.copy(alpha = 0.88f), accentColor)
                 )
             )
             .clickable { onClick() },

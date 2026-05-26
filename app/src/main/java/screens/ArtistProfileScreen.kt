@@ -3,10 +3,20 @@ package com.opensound.app.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -17,9 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.opensound.app.R
@@ -34,14 +46,14 @@ fun ArtistProfileScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF101014))
-            .padding(bottom = 160.dp)
+            .background(Color(0xFF08070D))
+            .padding(bottom = 168.dp)
     ) {
         item {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(330.dp)
+                    .height(340.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.cover),
@@ -53,7 +65,11 @@ fun ArtistProfileScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xAA000000))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0x6608070D), Color(0xFF08070D))
+                            )
+                        )
                 )
 
                 Image(
@@ -61,9 +77,9 @@ fun ArtistProfileScreen(
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .size(210.dp)
+                        .size(218.dp)
                         .align(Alignment.BottomEnd)
-                        .offset(x = 15.dp, y = 20.dp)
+                        .offset(x = 18.dp, y = 18.dp)
                         .zIndex(2f)
                 )
 
@@ -76,41 +92,36 @@ fun ArtistProfileScreen(
                     Text(
                         text = "Synth Waves",
                         color = Color.White,
-                        style = MaterialTheme.typography.headlineLarge
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold
                     )
 
                     Text(
                         text = "Electronic • Ambient • Indie",
-                        color = Color.LightGray
+                        color = Color(0xFFC8BED8)
                     )
                 }
             }
         }
 
         item {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
+            Column(modifier = Modifier.padding(20.dp)) {
                 Text(
                     text = "Автор создаёт атмосферную электронную музыку с визуальными сценами для каждого релиза.",
-                    color = Color.LightGray,
+                    color = Color(0xFFC8BED8),
                     style = MaterialTheme.typography.bodyLarge
                 )
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(onClick = { onAddTrackClick() }) {
-                        Text("Добавить трек")
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = onAddTrackClick) {
+                        Text("Edit Atmosphere")
                     }
 
                     Card(
                         shape = RoundedCornerShape(50.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFF241A36)
-                        )
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f))
                     ) {
                         Text(
                             text = "Поддержать",
@@ -125,7 +136,8 @@ fun ArtistProfileScreen(
                 Text(
                     text = "Популярные треки",
                     color = Color.White,
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -153,9 +165,7 @@ fun ArtistTrackRow(
             .height(72.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1B1B22)
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f))
     ) {
         Row(
             modifier = Modifier
@@ -176,7 +186,7 @@ fun ArtistTrackRow(
 
             Column {
                 Text(track.title, color = Color.White)
-                Text(track.artist, color = Color.Gray)
+                Text(track.artist, color = Color(0xFFA9A1B6))
             }
         }
     }

@@ -36,6 +36,8 @@ fun AtmosphereMiniPlayerContent(
     modifier: Modifier = Modifier
 ) {
     val panelShape = RoundedCornerShape(22.dp)
+    val accentColor = Color(atmosphereConfig.accentColor)
+    val panelAlpha = atmosphereConfig.panelOpacity
 
     Box(
         modifier = modifier
@@ -52,6 +54,15 @@ fun AtmosphereMiniPlayerContent(
                         atmosphereConfig.characterY.roundToInt() + 12
                     )
                 }
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            accentColor.copy(alpha = 0.68f * atmosphereConfig.glowIntensity),
+                            accentColor.copy(alpha = 0.28f * atmosphereConfig.glowIntensity),
+                            Color.Transparent
+                        )
+                    )
+                )
                 .zIndex(1f)
         )
 
@@ -78,14 +89,14 @@ fun AtmosphereMiniPlayerContent(
                 .align(Alignment.BottomCenter)
                 .shadow(18.dp, panelShape, clip = false)
                 .clip(panelShape)
-                .background(Color(0xEE100D18))
+                .background(Color(0xFF100D18).copy(alpha = panelAlpha))
                 .border(
                     width = 1.dp,
                     brush = Brush.horizontalGradient(
                         listOf(
-                            Color(0xFF9B5CFF).copy(alpha = 0.75f),
+                            accentColor.copy(alpha = 0.78f),
                             Color.White.copy(alpha = 0.12f),
-                            Color(0xFF9B5CFF).copy(alpha = 0.55f)
+                            accentColor.copy(alpha = 0.55f)
                         )
                     ),
                     shape = panelShape
@@ -107,9 +118,9 @@ fun AtmosphereMiniPlayerContent(
                     .background(
                         Brush.horizontalGradient(
                             listOf(
-                                Color(0xF4110D1B),
-                                Color(0xD51A1029),
-                                Color(0xEF090811)
+                                Color(0xFF110D1B).copy(alpha = panelAlpha),
+                                Color(0xFF1A1029).copy(alpha = panelAlpha * 0.86f),
+                                Color(0xFF090811).copy(alpha = panelAlpha)
                             )
                         )
                     )
@@ -170,7 +181,7 @@ fun AtmosphereMiniPlayerContent(
                     .align(Alignment.BottomStart)
                     .fillMaxWidth(0.38f)
                     .height(3.dp)
-                    .background(Color(0xFF9B5CFF))
+                    .background(accentColor)
                     .zIndex(3f)
             )
         }
@@ -179,18 +190,7 @@ fun AtmosphereMiniPlayerContent(
 
 @Composable
 private fun CharacterGlow(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        Color(0xAA9B5CFF),
-                        Color(0x449B5CFF),
-                        Color.Transparent
-                    )
-                )
-            )
-    )
+    Box(modifier = modifier)
 }
 
 @Composable
