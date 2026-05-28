@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.opensound.app.R
 import com.opensound.app.models.AtmosphereConfig
+import com.opensound.app.models.AtmosphereLayer
+import com.opensound.app.models.AtmosphereLayerType
 import com.opensound.app.models.Track
 import kotlin.math.roundToInt
 
@@ -44,9 +46,9 @@ fun AtmosphereMiniPlayerContent(
     val panelShape = RoundedCornerShape(22.dp)
     val accentColor = Color(atmosphereConfig.accentColor)
     val panelAlpha = atmosphereConfig.panelOpacity
-    val showOverlayText = atmosphereConfig.overlayText.isNotBlank() &&
-        (currentTimeSeconds == null ||
-            currentTimeSeconds in atmosphereConfig.overlayTextStart..atmosphereConfig.overlayTextEnd)
+    val activeLayers = atmosphereConfig.layers.filter { layer ->
+        layer.isVisible && (currentTimeSeconds == null || currentTimeSeconds in layer.startTime..layer.endTime)
+    }
 
     Box(
         modifier = modifier
@@ -72,69 +74,87 @@ fun AtmosphereMiniPlayerContent(
                 }
             )
     ) {
-        if (showOverlayText) {
-            Text(
-                text = atmosphereConfig.overlayText,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset {
-                        IntOffset(
-                            atmosphereConfig.overlayTextX.roundToInt(),
-                            atmosphereConfig.overlayTextY.roundToInt()
-                        )
-                    }
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(accentColor.copy(alpha = 0.28f))
-                    .border(
-                        width = 1.dp,
-                        color = accentColor.copy(alpha = 0.72f),
-                        shape = RoundedCornerShape(18.dp)
-                    )
-                    .padding(horizontal = 14.dp, vertical = 7.dp)
-                    .zIndex(5f)
-            )
-        }
+        activeLayers
+            .filter { it.type == AtmosphereLayerType.Text }
+            .forEachIndexed { index, layer ->
+                val text = textForLayer(layer, atmosphereConfig)
+                if (text.isNotBlank()) {
+                    val layerAccent = Color(layer.accentColor)
 
-        CharacterGlow(
-            modifier = Modifier
-                .size((atmosphereConfig.characterSize + 42).dp)
-                .align(Alignment.TopCenter)
-                .offset {
-                    IntOffset(
-                        atmosphereConfig.characterX.roundToInt(),
-                        atmosphereConfig.characterY.roundToInt() + 12
+                    Text(
+                        text = text,
+                        color = Color.White.copy(alpha = layer.opacity),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .offset {
+                                IntOffset(
+                                    xForLayer(layer, atmosphereConfig).roundToInt(),
+                                    yForLayer(layer, atmosphereConfig).roundToInt()
+                                )
+                            }
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(layerAccent.copy(alpha = 0.28f * layer.opacity))
+                            .border(
+                                width = 1.dp,
+                                color = layerAccent.copy(alpha = 0.72f * layer.opacity),
+                                shape = RoundedCornerShape(18.dp)
+                            )
+                            .padding(horizontal = 14.dp, vertical = 7.dp)
+                            .zIndex(5f + index * 0.01f)
                     )
                 }
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.68f * atmosphereConfig.glowIntensity),
-                            accentColor.copy(alpha = 0.28f * atmosphereConfig.glowIntensity),
-                            Color.Transparent
+            }
+
+        activeLayers
+            .filter { it.type == AtmosphereLayerType.Character }
+            .forEachIndexed { index, layer ->
+                val layerAccent = Color(layer.accentColor)
+                val characterSize = (scaleForLayer(layer, atmosphereConfig) * 100f)
+                    .coerceIn(70f, 150f)
+                val characterX = xForLayer(layer, atmosphereConfig)
+                val characterY = yForLayer(layer, atmosphereConfig)
+
+                CharacterGlow(
+                    modifier = Modifier
+                        .size((characterSize + 42).dp)
+                        .align(Alignment.TopCenter)
+                        .offset {
+                            IntOffset(
+                                characterX.roundToInt(),
+                                characterY.roundToInt() + 12
+                            )
+                        }
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    layerAccent.copy(alpha = 0.68f * atmosphereConfig.glowIntensity * layer.opacity),
+                                    layerAccent.copy(alpha = 0.28f * atmosphereConfig.glowIntensity * layer.opacity),
+                                    Color.Transparent
+                                )
+                            )
                         )
-                    )
+                        .zIndex(1f + index * 0.01f)
                 )
-                .zIndex(1f)
-        )
 
-        Image(
-            painter = painterResource(id = R.drawable.character),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .size(atmosphereConfig.characterSize.dp)
-                .align(Alignment.TopCenter)
-                .offset {
-                    IntOffset(
-                        atmosphereConfig.characterX.roundToInt(),
-                        atmosphereConfig.characterY.roundToInt()
-                    )
-                }
-                .zIndex(2f)
-        )
+                Image(
+                    painter = painterResource(id = R.drawable.character),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    alpha = layer.opacity,
+                    modifier = Modifier
+                        .size(characterSize.dp)
+                        .align(Alignment.TopCenter)
+                        .offset {
+                            IntOffset(
+                                characterX.roundToInt(),
+                                characterY.roundToInt()
+                            )
+                        }
+                        .zIndex(2f + index * 0.01f)
+                )
+            }
 
         Box(
             modifier = Modifier
@@ -188,7 +208,7 @@ fun AtmosphereMiniPlayerContent(
                 .fillMaxWidth()
                 .height(72.dp)
                 .align(Alignment.BottomCenter)
-                .zIndex(4f)
+                .zIndex(7f)
         ) {
             Row(
                 modifier = Modifier
@@ -252,6 +272,50 @@ fun AtmosphereMiniPlayerContent(
 @Composable
 private fun CharacterGlow(modifier: Modifier = Modifier) {
     Box(modifier = modifier)
+}
+
+private fun textForLayer(
+    layer: AtmosphereLayer,
+    config: AtmosphereConfig
+): String {
+    return if (layer.id == "text-main") {
+        layer.text.ifBlank { config.overlayText }
+    } else {
+        layer.text
+    }
+}
+
+private fun xForLayer(
+    layer: AtmosphereLayer,
+    config: AtmosphereConfig
+): Float {
+    return when {
+        layer.id == "character-main" -> config.characterX
+        layer.id == "text-main" -> config.overlayTextX
+        else -> layer.x
+    }
+}
+
+private fun yForLayer(
+    layer: AtmosphereLayer,
+    config: AtmosphereConfig
+): Float {
+    return when {
+        layer.id == "character-main" -> config.characterY
+        layer.id == "text-main" -> config.overlayTextY
+        else -> layer.y
+    }
+}
+
+private fun scaleForLayer(
+    layer: AtmosphereLayer,
+    config: AtmosphereConfig
+): Float {
+    return if (layer.id == "character-main") {
+        config.characterSize / 100f
+    } else {
+        layer.scale
+    }
 }
 
 @Composable

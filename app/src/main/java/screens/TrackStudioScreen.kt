@@ -3,7 +3,6 @@ package com.opensound.app.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.opensound.app.models.AtmosphereConfig
@@ -51,6 +49,10 @@ import com.opensound.app.models.atmospherePresets
 import com.opensound.app.models.limitAtmosphereConfig
 import com.opensound.app.player.AtmosphereMiniPlayerContent
 import kotlin.math.roundToInt
+
+private const val CHARACTER_MAIN_LAYER_ID = "character-main"
+private const val TEXT_MAIN_LAYER_ID = "text-main"
+private const val TIMELINE_DURATION_SECONDS = 100f
 
 @Composable
 fun TrackStudioScreen(
@@ -69,7 +71,7 @@ fun TrackStudioScreen(
         mutableStateOf(24f)
     }
     var selectedLayerId by remember {
-        mutableStateOf("text-main")
+        mutableStateOf(TEXT_MAIN_LAYER_ID)
     }
 
     Column(
@@ -98,23 +100,23 @@ fun TrackStudioScreen(
             activeDragLayer = selectedSection,
             onDragCharacter = { dx, dy ->
                 draftConfig = limitAtmosphereConfig(
-                    syncPrimaryLayers(
-                        draftConfig.copy(
-                            characterX = draftConfig.characterX + dx,
-                            characterY = draftConfig.characterY + dy
-                        ),
-                        selectedLayerId
+                    moveSelectedLayer(
+                        config = draftConfig,
+                        selectedLayerId = selectedLayerId,
+                        type = AtmosphereLayerType.Character,
+                        dx = dx,
+                        dy = dy
                     )
                 )
             },
             onDragText = { dx, dy ->
                 draftConfig = limitAtmosphereConfig(
-                    syncPrimaryLayers(
-                        draftConfig.copy(
-                            overlayTextX = draftConfig.overlayTextX + dx,
-                            overlayTextY = draftConfig.overlayTextY + dy
-                        ),
-                        selectedLayerId
+                    moveSelectedLayer(
+                        config = draftConfig,
+                        selectedLayerId = selectedLayerId,
+                        type = AtmosphereLayerType.Text,
+                        dx = dx,
+                        dy = dy
                     )
                 )
             }
@@ -161,19 +163,19 @@ fun TrackStudioScreen(
         when (selectedSection) {
             "Scene" -> SceneSection(
                 draftConfig = draftConfig,
-                onConfigChange = { draftConfig = limitAtmosphereConfig(it) }
+                onConfigChange = { draftConfig = limitAtmosphereConfig(syncPrimaryLayers(it)) }
             )
 
             "Character" -> CharacterSection(
                 draftConfig = draftConfig,
                 selectedLayerId = selectedLayerId,
-                onConfigChange = { draftConfig = limitAtmosphereConfig(syncPrimaryLayers(it, selectedLayerId)) }
+                onConfigChange = { draftConfig = limitAtmosphereConfig(syncPrimaryLayers(it)) }
             )
 
             "Text" -> TextSection(
                 draftConfig = draftConfig,
                 selectedLayerId = selectedLayerId,
-                onConfigChange = { draftConfig = limitAtmosphereConfig(syncPrimaryLayers(it, selectedLayerId)) }
+                onConfigChange = { draftConfig = limitAtmosphereConfig(syncPrimaryLayers(it)) }
             )
 
             "Timing" -> TimingSection(
@@ -183,13 +185,15 @@ fun TrackStudioScreen(
                 onConfigChange = { draftConfig = limitAtmosphereConfig(it) },
                 onLayerChange = { updatedLayer ->
                     draftConfig = limitAtmosphereConfig(
-                        syncConfigWithLayer(
-                            config = draftConfig.copy(
-                                layers = draftConfig.layers.map { layer ->
-                                    if (layer.id == updatedLayer.id) updatedLayer else layer
-                                }
-                            ),
-                            layer = updatedLayer
+                        syncPrimaryLayers(
+                            syncConfigWithLayer(
+                                config = draftConfig.copy(
+                                    layers = draftConfig.layers.map { layer ->
+                                        if (layer.id == updatedLayer.id) updatedLayer else layer
+                                    }
+                                ),
+                                layer = updatedLayer
+                            )
                         )
                     )
                 }
@@ -482,19 +486,27 @@ private fun StudioSections(
 private fun timelineLayersFor(config: AtmosphereConfig): List<AtmosphereLayer> {
     return config.layers.map { layer ->
         when (layer.type) {
-            AtmosphereLayerType.Text -> layer.copy(
-                name = if (layer.text.isBlank()) "Text cue" else layer.text,
-                text = layer.text.ifBlank { config.overlayText },
-                startTime = if (layer.id == "text-main") config.overlayTextStart else layer.startTime,
-                endTime = if (layer.id == "text-main") config.overlayTextEnd else layer.endTime,
-                x = if (layer.id == "text-main") config.overlayTextX else layer.x,
-                y = if (layer.id == "text-main") config.overlayTextY else layer.y,
-                animationIn = if (layer.id == "text-main") config.overlayTextAnimation else layer.animationIn
-            )
+            AtmosphereLayerType.Text -> {
+                val layerText = if (layer.id == TEXT_MAIN_LAYER_ID) {
+                    config.overlayText
+                } else {
+                    layer.text
+                }
+
+                layer.copy(
+                    name = layerText.ifBlank { "Text cue" },
+                    text = layerText,
+                    startTime = if (layer.id == TEXT_MAIN_LAYER_ID) config.overlayTextStart else layer.startTime,
+                    endTime = if (layer.id == TEXT_MAIN_LAYER_ID) config.overlayTextEnd else layer.endTime,
+                    x = if (layer.id == TEXT_MAIN_LAYER_ID) config.overlayTextX else layer.x,
+                    y = if (layer.id == TEXT_MAIN_LAYER_ID) config.overlayTextY else layer.y,
+                    animationIn = if (layer.id == TEXT_MAIN_LAYER_ID) config.overlayTextAnimation else layer.animationIn
+                )
+            }
             AtmosphereLayerType.Character -> layer.copy(
-                x = if (layer.id == "character-main") config.characterX else layer.x,
-                y = if (layer.id == "character-main") config.characterY else layer.y,
-                scale = if (layer.id == "character-main") config.characterSize / 100f else layer.scale
+                x = if (layer.id == CHARACTER_MAIN_LAYER_ID) config.characterX else layer.x,
+                y = if (layer.id == CHARACTER_MAIN_LAYER_ID) config.characterY else layer.y,
+                scale = if (layer.id == CHARACTER_MAIN_LAYER_ID) config.characterSize / 100f else layer.scale
             )
             else -> layer
         }
@@ -535,8 +547,8 @@ private fun syncConfigWithLayer(
     config: AtmosphereConfig,
     layer: AtmosphereLayer
 ): AtmosphereConfig {
-    return when (layer.type) {
-        AtmosphereLayerType.Text -> config.copy(
+    return when {
+        layer.id == TEXT_MAIN_LAYER_ID && layer.type == AtmosphereLayerType.Text -> config.copy(
             overlayTextStart = layer.startTime,
             overlayTextEnd = layer.endTime,
             overlayTextAnimation = layer.animationIn,
@@ -544,7 +556,7 @@ private fun syncConfigWithLayer(
             overlayTextY = layer.y,
             overlayText = layer.text
         )
-        AtmosphereLayerType.Character -> config.copy(
+        layer.id == CHARACTER_MAIN_LAYER_ID && layer.type == AtmosphereLayerType.Character -> config.copy(
             characterX = layer.x,
             characterY = layer.y,
             characterSize = (layer.scale * 100f).coerceIn(70f, 150f)
@@ -553,20 +565,17 @@ private fun syncConfigWithLayer(
     }
 }
 
-private fun syncPrimaryLayers(
-    config: AtmosphereConfig,
-    selectedLayerId: String
-): AtmosphereConfig {
+private fun syncPrimaryLayers(config: AtmosphereConfig): AtmosphereConfig {
     return config.copy(
         layers = config.layers.map { layer ->
-            when {
-                layer.id == selectedLayerId && layer.type == AtmosphereLayerType.Character -> layer.copy(
+            when (layer.id) {
+                CHARACTER_MAIN_LAYER_ID -> layer.copy(
                     x = config.characterX,
                     y = config.characterY,
                     scale = config.characterSize / 100f,
                     accentColor = config.accentColor
                 )
-                layer.id == selectedLayerId && layer.type == AtmosphereLayerType.Text -> layer.copy(
+                TEXT_MAIN_LAYER_ID -> layer.copy(
                     x = config.overlayTextX,
                     y = config.overlayTextY,
                     text = config.overlayText,
@@ -581,15 +590,155 @@ private fun syncPrimaryLayers(
     )
 }
 
+private fun selectedLayerFor(
+    config: AtmosphereConfig,
+    selectedLayerId: String,
+    type: AtmosphereLayerType
+): AtmosphereLayer? {
+    val layers = timelineLayersFor(config)
+    return layers.firstOrNull { it.id == selectedLayerId && it.type == type }
+        ?: layers.firstOrNull { it.id == primaryLayerIdFor(type) }
+}
+
+private fun primaryLayerIdFor(type: AtmosphereLayerType): String? {
+    return when (type) {
+        AtmosphereLayerType.Character -> CHARACTER_MAIN_LAYER_ID
+        AtmosphereLayerType.Text -> TEXT_MAIN_LAYER_ID
+        else -> null
+    }
+}
+
+private fun moveSelectedLayer(
+    config: AtmosphereConfig,
+    selectedLayerId: String,
+    type: AtmosphereLayerType,
+    dx: Float,
+    dy: Float
+): AtmosphereConfig {
+    val layer = selectedLayerFor(config, selectedLayerId, type) ?: return config
+    val (minX, maxX) = xBoundsFor(type)
+    val (minY, maxY) = yBoundsFor(type)
+    val nextX = (layer.x + dx).coerceIn(minX, maxX)
+    val nextY = (layer.y + dy).coerceIn(minY, maxY)
+    val updatedConfig = when (layer.id) {
+        CHARACTER_MAIN_LAYER_ID -> config.copy(
+            characterX = nextX,
+            characterY = nextY
+        )
+        TEXT_MAIN_LAYER_ID -> config.copy(
+            overlayTextX = nextX,
+            overlayTextY = nextY
+        )
+        else -> config.copy(
+            layers = config.layers.map { currentLayer ->
+                if (currentLayer.id == layer.id) {
+                    currentLayer.copy(x = nextX, y = nextY)
+                } else {
+                    currentLayer
+                }
+            }
+        )
+    }
+
+    return syncPrimaryLayers(updatedConfig)
+}
+
+private fun updateSelectedCharacterSize(
+    config: AtmosphereConfig,
+    selectedLayerId: String,
+    size: Float
+): AtmosphereConfig {
+    val layer = selectedLayerFor(config, selectedLayerId, AtmosphereLayerType.Character) ?: return config
+    val safeSize = size.coerceIn(70f, 150f)
+    val updatedConfig = when (layer.id) {
+        CHARACTER_MAIN_LAYER_ID -> config.copy(characterSize = safeSize)
+        else -> config.copy(
+            layers = config.layers.map { currentLayer ->
+                if (currentLayer.id == layer.id) {
+                    currentLayer.copy(scale = safeSize / 100f)
+                } else {
+                    currentLayer
+                }
+            }
+        )
+    }
+
+    return syncPrimaryLayers(updatedConfig)
+}
+
+private fun updateSelectedText(
+    config: AtmosphereConfig,
+    selectedLayerId: String,
+    text: String
+): AtmosphereConfig {
+    val layer = selectedLayerFor(config, selectedLayerId, AtmosphereLayerType.Text) ?: return config
+    val safeText = text.take(28)
+    val updatedConfig = when (layer.id) {
+        TEXT_MAIN_LAYER_ID -> config.copy(overlayText = safeText)
+        else -> config.copy(
+            layers = config.layers.map { currentLayer ->
+                if (currentLayer.id == layer.id) {
+                    currentLayer.copy(
+                        name = safeText.ifBlank { "Text cue" },
+                        text = safeText
+                    )
+                } else {
+                    currentLayer
+                }
+            }
+        )
+    }
+
+    return syncPrimaryLayers(updatedConfig)
+}
+
+private fun updateSelectedTextAnimation(
+    config: AtmosphereConfig,
+    selectedLayerId: String,
+    animation: String
+): AtmosphereConfig {
+    val layer = selectedLayerFor(config, selectedLayerId, AtmosphereLayerType.Text) ?: return config
+    val updatedConfig = when (layer.id) {
+        TEXT_MAIN_LAYER_ID -> config.copy(overlayTextAnimation = animation)
+        else -> config.copy(
+            layers = config.layers.map { currentLayer ->
+                if (currentLayer.id == layer.id) {
+                    currentLayer.copy(animationIn = animation)
+                } else {
+                    currentLayer
+                }
+            }
+        )
+    }
+
+    return syncPrimaryLayers(updatedConfig)
+}
+
+private fun xBoundsFor(type: AtmosphereLayerType): Pair<Float, Float> {
+    return when (type) {
+        AtmosphereLayerType.Text -> -240f to 240f
+        AtmosphereLayerType.Character -> -260f to 260f
+        else -> -260f to 260f
+    }
+}
+
+private fun yBoundsFor(type: AtmosphereLayerType): Pair<Float, Float> {
+    return when (type) {
+        AtmosphereLayerType.Text -> -55f to 105f
+        AtmosphereLayerType.Character -> -155f to 70f
+        else -> -155f to 105f
+    }
+}
+
 private fun duplicateSelectedLayer(
     config: AtmosphereConfig,
     selectedLayerId: String
 ): Pair<AtmosphereConfig, String>? {
-    val selectedLayer = config.layers.firstOrNull { it.id == selectedLayerId } ?: return null
+    val selectedLayer = timelineLayersFor(config).firstOrNull { it.id == selectedLayerId } ?: return null
     val copyIndex = config.layers.count { it.id.startsWith("${selectedLayer.id}-copy") } + 1
     val duration = (selectedLayer.endTime - selectedLayer.startTime).coerceAtLeast(2f)
-    val newStart = (selectedLayer.startTime + 4f).coerceIn(0f, 98f)
-    val newEnd = (newStart + duration).coerceIn(newStart + 2f, 100f)
+    val newStart = (selectedLayer.startTime + 4f).coerceIn(0f, TIMELINE_DURATION_SECONDS - 2f)
+    val newEnd = (newStart + duration).coerceIn(newStart + 2f, TIMELINE_DURATION_SECONDS)
     val newId = "${selectedLayer.id}-copy-$copyIndex"
     val duplicatedLayer = selectedLayer.copy(
         id = newId,
@@ -626,7 +775,8 @@ private fun SceneSection(
                                 overlayTextY = draftConfig.overlayTextY,
                                 overlayTextStart = draftConfig.overlayTextStart,
                                 overlayTextEnd = draftConfig.overlayTextEnd,
-                                overlayTextAnimation = draftConfig.overlayTextAnimation
+                                overlayTextAnimation = draftConfig.overlayTextAnimation,
+                                layers = draftConfig.layers
                             )
                         )
                     }
@@ -685,20 +835,24 @@ private fun CharacterSection(
     selectedLayerId: String,
     onConfigChange: (AtmosphereConfig) -> Unit
 ) {
-    val layer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId && it.type == AtmosphereLayerType.Character }
+    val layer = selectedLayerFor(draftConfig, selectedLayerId, AtmosphereLayerType.Character)
+    val targetLayerId = layer?.id ?: CHARACTER_MAIN_LAYER_ID
+    val size = ((layer?.scale ?: (draftConfig.characterSize / 100f)) * 100f).coerceIn(70f, 150f)
+    val positionX = layer?.x ?: draftConfig.characterX
+    val positionY = layer?.y ?: draftConfig.characterY
 
     StudioPanel(title = "Character layer") {
         StudioSlider(
             title = "Character size",
-            value = draftConfig.characterSize,
+            value = size,
             valueRange = 70f..150f,
             onValueChange = {
-                onConfigChange(draftConfig.copy(characterSize = it))
+                onConfigChange(updateSelectedCharacterSize(draftConfig, targetLayerId, it))
             }
         )
 
         Text(
-            text = "Layer: ${layer?.name ?: "Character"}. Drag in preview. Position: x=${draftConfig.characterX.roundToInt()}, y=${draftConfig.characterY.roundToInt()}",
+            text = "Layer: ${layer?.name ?: "Character"}. Drag in preview. Position: x=${positionX.roundToInt()}, y=${positionY.roundToInt()}",
             color = Color(0xFFA9A1B6)
         )
     }
@@ -710,13 +864,18 @@ private fun TextSection(
     selectedLayerId: String,
     onConfigChange: (AtmosphereConfig) -> Unit
 ) {
-    val layer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId && it.type == AtmosphereLayerType.Text }
+    val layer = selectedLayerFor(draftConfig, selectedLayerId, AtmosphereLayerType.Text)
+    val targetLayerId = layer?.id ?: TEXT_MAIN_LAYER_ID
+    val textValue = layer?.text ?: draftConfig.overlayText
+    val animationValue = layer?.animationIn ?: draftConfig.overlayTextAnimation
+    val positionX = layer?.x ?: draftConfig.overlayTextX
+    val positionY = layer?.y ?: draftConfig.overlayTextY
 
     StudioPanel(title = "Text cue") {
         OutlinedTextField(
-            value = draftConfig.overlayText,
+            value = textValue,
             onValueChange = {
-                onConfigChange(draftConfig.copy(overlayText = it.take(28)))
+                onConfigChange(updateSelectedText(draftConfig, targetLayerId, it))
             },
             label = { Text("Phrase") },
             placeholder = { Text("Example: night calls") },
@@ -734,9 +893,9 @@ private fun TextSection(
             items(listOf("Fade", "Rise", "Pulse")) { animation ->
                 SectionChip(
                     name = animation,
-                    selected = draftConfig.overlayTextAnimation == animation,
+                    selected = animationValue == animation,
                     onClick = {
-                        onConfigChange(draftConfig.copy(overlayTextAnimation = animation))
+                        onConfigChange(updateSelectedTextAnimation(draftConfig, targetLayerId, animation))
                     }
                 )
             }
@@ -745,7 +904,7 @@ private fun TextSection(
         Spacer(modifier = Modifier.height(14.dp))
 
         Text(
-            text = "Layer: ${layer?.name ?: "Text cue"}. Drag in preview. Position: x=${draftConfig.overlayTextX.roundToInt()}, y=${draftConfig.overlayTextY.roundToInt()}",
+            text = "Layer: ${layer?.name ?: "Text cue"}. Drag in preview. Position: x=${positionX.roundToInt()}, y=${positionY.roundToInt()}",
             color = Color(0xFFA9A1B6)
         )
     }
@@ -763,7 +922,7 @@ private fun TimingSection(
 
     StudioPanel(title = "Selected clip") {
         Text(
-            text = "${layer.name} • ${layer.startTime.roundToInt()}s to ${layer.endTime.roundToInt()}s",
+            text = "${layer.name} - ${layer.startTime.roundToInt()}s to ${layer.endTime.roundToInt()}s",
             color = Color(0xFFC8BED8)
         )
 
