@@ -418,7 +418,7 @@ private fun TimelinePanel(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Clip controls",
+                text = "Fine tune",
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold
             )
@@ -600,7 +600,7 @@ private fun TimelineRuler() {
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Spacer(modifier = Modifier.width(128.dp))
+        Spacer(modifier = Modifier.width(134.dp))
 
         Row(
             modifier = Modifier.weight(1f),
@@ -634,9 +634,19 @@ private fun TimelineLayerRow(
     val playhead = previewTimeSeconds.coerceIn(0f, duration)
     val density = LocalDensity.current
     val latestLayerState = rememberUpdatedState(layer)
+    val rowShape = RoundedCornerShape(16.dp)
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(rowShape)
+            .background(accentColor.copy(alpha = if (isSelected) 0.1f else 0f))
+            .border(
+                width = 1.dp,
+                color = if (isSelected) accentColor.copy(alpha = 0.34f) else Color.Transparent,
+                shape = rowShape
+            )
+            .padding(horizontal = 6.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -698,7 +708,7 @@ private fun TimelineLayerRow(
                             accentColor.copy(
                                 alpha = when {
                                     !layer.isVisible -> 0.16f
-                                    isSelected -> 0.72f
+                                    isSelected -> 0.86f
                                     else -> 0.42f
                                 }
                             )
@@ -706,7 +716,7 @@ private fun TimelineLayerRow(
                         .border(
                             width = if (isSelected) 2.dp else 1.dp,
                             color = if (isSelected) {
-                                Color.White.copy(alpha = if (layer.isVisible) 0.55f else 0.22f)
+                                Color.White.copy(alpha = if (layer.isVisible) 0.72f else 0.22f)
                             } else {
                                 accentColor.copy(alpha = if (layer.isVisible) 0.5f else 0.18f)
                             },
@@ -808,14 +818,14 @@ private fun TimelineTrimHandle(
 ) {
     Box(
         modifier = modifier
-            .width(10.dp)
+            .width(if (selected) 12.dp else 8.dp)
             .height(30.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(
                 Color.White.copy(
                     alpha = when {
                         !visible -> 0.08f
-                        selected -> 0.28f
+                        selected -> 0.5f
                         else -> 0.12f
                     }
                 )
@@ -827,8 +837,17 @@ private fun TimelineTrimHandle(
                         onDrag(dragAmount.x)
                     }
                 )
-            }
-    )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .height(16.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(Color.White.copy(alpha = if (selected && visible) 0.72f else 0.22f))
+        )
+    }
 }
 
 @Composable
