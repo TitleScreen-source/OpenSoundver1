@@ -3,10 +3,12 @@ package com.opensound.app.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -34,11 +36,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.opensound.app.models.AtmosphereConfig
@@ -492,6 +497,7 @@ private fun TimelinePanel(
                 previewTimeSeconds = previewTimeSeconds,
                 isSelected = selectedLayerId == layer.id,
                 onToggleVisibility = { onToggleLayerVisibility(layer) },
+                onClipMove = { onLayerTimelineEdit(it) },
                 onClick = { onLayerSelected(layer) }
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -645,14 +651,17 @@ private fun TimelineLayerRow(
     previewTimeSeconds: Float,
     isSelected: Boolean,
     onToggleVisibility: () -> Unit,
+    onClipMove: (AtmosphereLayer) -> Unit,
     onClick: () -> Unit
 ) {
     val accentColor = colorForLayer(layer.type)
-    val duration = 100f
+    val duration = TIMELINE_DURATION_SECONDS
     val clipStart = layer.startTime.coerceIn(0f, duration)
     val minClipEnd = (clipStart + 1f).coerceAtMost(duration)
     val clipEnd = layer.endTime.coerceIn(clipStart, duration).coerceAtLeast(minClipEnd)
     val playhead = previewTimeSeconds.coerceIn(0f, duration)
+    val density = LocalDensity.current
+    val latestLayerState = rememberUpdatedState(layer)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -689,7 +698,7 @@ private fun TimelineLayerRow(
             modifier = Modifier.width(80.dp)
         )
 
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .weight(1f)
                 .height(30.dp)
@@ -701,6 +710,8 @@ private fun TimelineLayerRow(
                     shape = RoundedCornerShape(12.dp)
                 )
         ) {
+            val trackWidthPx = with(density) { maxWidth.toPx() }.coerceAtLeast(1f)
+
             Row(modifier = Modifier.fillMaxSize()) {
                 if (clipStart > 0f) {
                     Spacer(modifier = Modifier.weight(clipStart))
@@ -729,6 +740,30 @@ private fun TimelineLayerRow(
                             },
                             shape = RoundedCornerShape(10.dp)
                         )
+                        .pointerInput(layer.id, trackWidthPx) {
+                            var dragSeconds = 0f
+                            var dragStartLayer: AtmosphereLayer? = null
+
+                            detectDragGestures(
+                                onDragStart = {
+                                    dragSeconds = 0f
+                                    dragStartLayer = latestLayerState.value
+                                    onClick()
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    val baseLayer = dragStartLayer ?: latestLayerState.value
+                                    dragSeconds += (dragAmount.x / trackWidthPx) * TIMELINE_DURATION_SECONDS
+                                    onClipMove(moveLayerToStart(baseLayer, baseLayer.startTime + dragSeconds))
+                                },
+                                onDragEnd = {
+                                    dragStartLayer = null
+                                },
+                                onDragCancel = {
+                                    dragStartLayer = null
+                                }
+                            )
+                        }
                         .clickable { onClick() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -1080,8 +1115,15 @@ private fun moveLayerTime(
     layer: AtmosphereLayer,
     seconds: Float
 ): AtmosphereLayer {
+    return moveLayerToStart(layer, layer.startTime + seconds)
+}
+
+private fun moveLayerToStart(
+    layer: AtmosphereLayer,
+    startTime: Float
+): AtmosphereLayer {
     val duration = layerDuration(layer)
-    val nextStart = (layer.startTime + seconds).coerceIn(0f, TIMELINE_DURATION_SECONDS - duration)
+    val nextStart = startTime.coerceIn(0f, TIMELINE_DURATION_SECONDS - duration)
 
     return layer.copy(
         startTime = nextStart,
