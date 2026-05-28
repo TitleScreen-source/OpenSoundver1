@@ -442,34 +442,6 @@ private fun TimelinePanel(
                 }
                 item {
                     TimelineActionButton(
-                        label = "Start -1",
-                        modifier = Modifier.width(88.dp),
-                        onClick = { onLayerTimelineEdit(trimLayerStart(layer, -1f)) }
-                    )
-                }
-                item {
-                    TimelineActionButton(
-                        label = "Start +1",
-                        modifier = Modifier.width(88.dp),
-                        onClick = { onLayerTimelineEdit(trimLayerStart(layer, 1f)) }
-                    )
-                }
-                item {
-                    TimelineActionButton(
-                        label = "End -1",
-                        modifier = Modifier.width(78.dp),
-                        onClick = { onLayerTimelineEdit(trimLayerEnd(layer, -1f)) }
-                    )
-                }
-                item {
-                    TimelineActionButton(
-                        label = "End +1",
-                        modifier = Modifier.width(78.dp),
-                        onClick = { onLayerTimelineEdit(trimLayerEnd(layer, 1f)) }
-                    )
-                }
-                item {
-                    TimelineActionButton(
                         label = "Snap",
                         modifier = Modifier.width(72.dp),
                         onClick = {
@@ -739,39 +711,68 @@ private fun TimelineLayerRow(
                                 accentColor.copy(alpha = if (layer.isVisible) 0.5f else 0.18f)
                             },
                             shape = RoundedCornerShape(10.dp)
-                        )
-                        .pointerInput(layer.id, trackWidthPx) {
-                            var dragSeconds = 0f
-                            var dragStartLayer: AtmosphereLayer? = null
-
-                            detectDragGestures(
-                                onDragStart = {
-                                    dragSeconds = 0f
-                                    dragStartLayer = latestLayerState.value
-                                    onClick()
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    val baseLayer = dragStartLayer ?: latestLayerState.value
-                                    dragSeconds += (dragAmount.x / trackWidthPx) * TIMELINE_DURATION_SECONDS
-                                    onClipMove(moveLayerToStart(baseLayer, baseLayer.startTime + dragSeconds))
-                                },
-                                onDragEnd = {
-                                    dragStartLayer = null
-                                },
-                                onDragCancel = {
-                                    dragStartLayer = null
-                                }
-                            )
-                        }
-                        .clickable { onClick() },
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .pointerInput(layer.id, trackWidthPx) {
+                                var dragSeconds = 0f
+                                var dragStartLayer: AtmosphereLayer? = null
+
+                                detectDragGestures(
+                                    onDragStart = {
+                                        dragSeconds = 0f
+                                        dragStartLayer = latestLayerState.value
+                                        onClick()
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        val baseLayer = dragStartLayer ?: latestLayerState.value
+                                        dragSeconds += (dragAmount.x / trackWidthPx) * TIMELINE_DURATION_SECONDS
+                                        onClipMove(moveLayerToStart(baseLayer, baseLayer.startTime + dragSeconds))
+                                    },
+                                    onDragEnd = {
+                                        dragStartLayer = null
+                                    },
+                                    onDragCancel = {
+                                        dragStartLayer = null
+                                    }
+                                )
+                            }
+                            .clickable { onClick() }
+                    )
+
                     Text(
                         text = clipLabel(layer),
                         color = Color.White.copy(alpha = if (layer.isVisible) 1f else 0.5f),
                         maxLines = 1,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
+
+                    TimelineTrimHandle(
+                        modifier = Modifier.align(Alignment.CenterStart),
+                        selected = isSelected,
+                        visible = layer.isVisible,
+                        onDrag = { dragAmountX ->
+                            val baseLayer = latestLayerState.value
+                            val seconds = (dragAmountX / trackWidthPx) * TIMELINE_DURATION_SECONDS
+                            onClick()
+                            onClipMove(trimLayerStartTo(baseLayer, baseLayer.startTime + seconds))
+                        }
+                    )
+
+                    TimelineTrimHandle(
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                        selected = isSelected,
+                        visible = layer.isVisible,
+                        onDrag = { dragAmountX ->
+                            val baseLayer = latestLayerState.value
+                            val seconds = (dragAmountX / trackWidthPx) * TIMELINE_DURATION_SECONDS
+                            onClick()
+                            onClipMove(trimLayerEndTo(baseLayer, baseLayer.endTime + seconds))
+                        }
                     )
                 }
 
@@ -796,6 +797,38 @@ private fun TimelineLayerRow(
             }
         }
     }
+}
+
+@Composable
+private fun TimelineTrimHandle(
+    modifier: Modifier = Modifier,
+    selected: Boolean,
+    visible: Boolean,
+    onDrag: (Float) -> Unit
+) {
+    Box(
+        modifier = modifier
+            .width(10.dp)
+            .height(30.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                Color.White.copy(
+                    alpha = when {
+                        !visible -> 0.08f
+                        selected -> 0.28f
+                        else -> 0.12f
+                    }
+                )
+            )
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(dragAmount.x)
+                    }
+                )
+            }
+    )
 }
 
 @Composable
@@ -1135,8 +1168,15 @@ private fun trimLayerStart(
     layer: AtmosphereLayer,
     seconds: Float
 ): AtmosphereLayer {
+    return trimLayerStartTo(layer, layer.startTime + seconds)
+}
+
+private fun trimLayerStartTo(
+    layer: AtmosphereLayer,
+    startTime: Float
+): AtmosphereLayer {
     val latestStart = (layer.endTime - 2f).coerceAtLeast(0f)
-    val nextStart = (layer.startTime + seconds).coerceIn(0f, latestStart)
+    val nextStart = startTime.coerceIn(0f, latestStart)
 
     return layer.copy(startTime = nextStart)
 }
@@ -1145,8 +1185,15 @@ private fun trimLayerEnd(
     layer: AtmosphereLayer,
     seconds: Float
 ): AtmosphereLayer {
+    return trimLayerEndTo(layer, layer.endTime + seconds)
+}
+
+private fun trimLayerEndTo(
+    layer: AtmosphereLayer,
+    endTime: Float
+): AtmosphereLayer {
     val earliestEnd = (layer.startTime + 2f).coerceAtMost(TIMELINE_DURATION_SECONDS)
-    val nextEnd = (layer.endTime + seconds).coerceIn(earliestEnd, TIMELINE_DURATION_SECONDS)
+    val nextEnd = endTime.coerceIn(earliestEnd, TIMELINE_DURATION_SECONDS)
 
     return layer.copy(endTime = nextEnd)
 }
