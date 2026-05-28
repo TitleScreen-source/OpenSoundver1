@@ -139,6 +139,14 @@ fun TrackStudioScreen(
             previewTimeSeconds = previewTimeSeconds,
             onPreviewTimeChange = { previewTimeSeconds = it },
             selectedLayerId = selectedLayerId,
+            onLayerTimelineEdit = { updatedLayer ->
+                draftConfig = limitAtmosphereConfig(
+                    updateTimelineLayer(
+                        config = draftConfig,
+                        updatedLayer = updatedLayer
+                    )
+                )
+            },
             onAddLayer = { type ->
                 addTimelineLayer(
                     config = draftConfig,
@@ -221,15 +229,9 @@ fun TrackStudioScreen(
                 onConfigChange = { draftConfig = limitAtmosphereConfig(it) },
                 onLayerChange = { updatedLayer ->
                     draftConfig = limitAtmosphereConfig(
-                        syncPrimaryLayers(
-                            syncConfigWithLayer(
-                                config = draftConfig.copy(
-                                    layers = draftConfig.layers.map { layer ->
-                                        if (layer.id == updatedLayer.id) updatedLayer else layer
-                                    }
-                                ),
-                                layer = updatedLayer
-                            )
+                        updateTimelineLayer(
+                            config = draftConfig,
+                            updatedLayer = updatedLayer
                         )
                     )
                 }
@@ -337,6 +339,7 @@ private fun TimelinePanel(
     previewTimeSeconds: Float,
     onPreviewTimeChange: (Float) -> Unit,
     selectedLayerId: String,
+    onLayerTimelineEdit: (AtmosphereLayer) -> Unit,
     onAddLayer: (AtmosphereLayerType) -> Unit,
     onDuplicateLayer: () -> Unit,
     onDeleteLayer: () -> Unit,
@@ -391,8 +394,8 @@ private fun TimelinePanel(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Playhead: ${previewTimeSeconds.roundToInt()}s" +
-                if (selectedLayer != null) " - Selected: ${selectedLayer.name}" else "",
+            text = "Playhead: ${formatTimelineTime(previewTimeSeconds)}" +
+                if (selectedLayer != null) " - ${selectedLayer.name}" else "",
             color = Color(0xFFA9A1B6)
         )
 
@@ -402,12 +405,86 @@ private fun TimelinePanel(
             valueRange = 0f..100f
         )
 
-        Text(
-            text = "Tap a clip to edit that layer.",
-            color = Color(0xFFA9A1B6)
-        )
+        selectedLayer?.let { layer ->
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TimelineSelectedClipInfo(layer = layer)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Clip controls",
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    TimelineActionButton(
+                        label = "Left 1s",
+                        modifier = Modifier.width(82.dp),
+                        onClick = { onLayerTimelineEdit(moveLayerTime(layer, -1f)) }
+                    )
+                }
+                item {
+                    TimelineActionButton(
+                        label = "Right 1s",
+                        modifier = Modifier.width(90.dp),
+                        onClick = { onLayerTimelineEdit(moveLayerTime(layer, 1f)) }
+                    )
+                }
+                item {
+                    TimelineActionButton(
+                        label = "Start -1",
+                        modifier = Modifier.width(88.dp),
+                        onClick = { onLayerTimelineEdit(trimLayerStart(layer, -1f)) }
+                    )
+                }
+                item {
+                    TimelineActionButton(
+                        label = "Start +1",
+                        modifier = Modifier.width(88.dp),
+                        onClick = { onLayerTimelineEdit(trimLayerStart(layer, 1f)) }
+                    )
+                }
+                item {
+                    TimelineActionButton(
+                        label = "End -1",
+                        modifier = Modifier.width(78.dp),
+                        onClick = { onLayerTimelineEdit(trimLayerEnd(layer, -1f)) }
+                    )
+                }
+                item {
+                    TimelineActionButton(
+                        label = "End +1",
+                        modifier = Modifier.width(78.dp),
+                        onClick = { onLayerTimelineEdit(trimLayerEnd(layer, 1f)) }
+                    )
+                }
+                item {
+                    TimelineActionButton(
+                        label = "Snap",
+                        modifier = Modifier.width(72.dp),
+                        onClick = {
+                            onLayerTimelineEdit(
+                                snapLayerToPlayhead(
+                                    layer = layer,
+                                    playheadSeconds = previewTimeSeconds
+                                )
+                            )
+                        }
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        TimelineRuler()
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         layers.forEach { layer ->
             TimelineLayerRow(
@@ -445,8 +522,120 @@ private fun TimelineActionButton(
         Text(
             text = label,
             color = Color.White.copy(alpha = if (enabled) 1f else 0.38f),
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
         )
+    }
+}
+
+@Composable
+private fun TimelineSelectedClipInfo(layer: AtmosphereLayer) {
+    val accentColor = colorForLayer(layer.type)
+    val durationSeconds = layerDuration(layer)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(accentColor.copy(alpha = 0.12f))
+            .border(
+                width = 1.dp,
+                color = accentColor.copy(alpha = 0.34f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = layer.name,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+
+            Text(
+                text = layerTypeLabel(layer.type),
+                color = accentColor,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            TimelineMetric(
+                label = "Start",
+                value = formatTimelineTime(layer.startTime),
+                modifier = Modifier.weight(1f)
+            )
+            TimelineMetric(
+                label = "End",
+                value = formatTimelineTime(layer.endTime),
+                modifier = Modifier.weight(1f)
+            )
+            TimelineMetric(
+                label = "Length",
+                value = "${durationSeconds.roundToInt()}s",
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun TimelineMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.06f))
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            color = Color(0xFFA9A1B6),
+            maxLines = 1
+        )
+        Text(
+            text = value,
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun TimelineRuler() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Spacer(modifier = Modifier.width(128.dp))
+
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            listOf(0f, 25f, 50f, 75f, 100f).forEach { seconds ->
+                Text(
+                    text = formatTimelineTime(seconds),
+                    color = Color(0xFF777083),
+                    maxLines = 1
+                )
+            }
+        }
     }
 }
 
@@ -494,10 +683,10 @@ private fun TimelineLayerRow(
         Spacer(modifier = Modifier.width(8.dp))
 
         Text(
-            text = layer.name,
+            text = "${layerTypeShort(layer.type)} ${layer.name}",
             color = Color(0xFFC8BED8).copy(alpha = if (layer.isVisible) 1f else 0.42f),
             maxLines = 1,
-            modifier = Modifier.width(72.dp)
+            modifier = Modifier.width(80.dp)
         )
 
         Box(
@@ -644,6 +833,16 @@ private fun layerTypeLabel(type: AtmosphereLayerType): String {
     }
 }
 
+private fun layerTypeShort(type: AtmosphereLayerType): String {
+    return when (type) {
+        AtmosphereLayerType.Character -> "C"
+        AtmosphereLayerType.Text -> "T"
+        AtmosphereLayerType.Effect -> "FX"
+        AtmosphereLayerType.Background -> "BG"
+        AtmosphereLayerType.Wave -> "WV"
+    }
+}
+
 private fun clipLabel(layer: AtmosphereLayer): String {
     return when (layer.type) {
         AtmosphereLayerType.Character -> "PNG"
@@ -662,6 +861,16 @@ private fun colorForLayer(type: AtmosphereLayerType): Color {
         AtmosphereLayerType.Background -> Color(0xFF4D8DFF)
         AtmosphereLayerType.Wave -> Color(0xFF19D3C5)
     }
+}
+
+private fun formatTimelineTime(seconds: Float): String {
+    val safeSeconds = seconds
+        .coerceIn(0f, TIMELINE_DURATION_SECONDS)
+        .roundToInt()
+    val minutes = safeSeconds / 60
+    val remainingSeconds = safeSeconds % 60
+
+    return "$minutes:${remainingSeconds.toString().padStart(2, '0')}"
 }
 
 private fun syncConfigWithLayer(
@@ -708,6 +917,22 @@ private fun syncPrimaryLayers(config: AtmosphereConfig): AtmosphereConfig {
                 else -> layer
             }
         }
+    )
+}
+
+private fun updateTimelineLayer(
+    config: AtmosphereConfig,
+    updatedLayer: AtmosphereLayer
+): AtmosphereConfig {
+    return syncPrimaryLayers(
+        syncConfigWithLayer(
+            config = config.copy(
+                layers = config.layers.map { layer ->
+                    if (layer.id == updatedLayer.id) updatedLayer else layer
+                }
+            ),
+            layer = updatedLayer
+        )
     )
 }
 
@@ -849,6 +1074,56 @@ private fun yBoundsFor(type: AtmosphereLayerType): Pair<Float, Float> {
         AtmosphereLayerType.Character -> -155f to 70f
         else -> -155f to 105f
     }
+}
+
+private fun moveLayerTime(
+    layer: AtmosphereLayer,
+    seconds: Float
+): AtmosphereLayer {
+    val duration = layerDuration(layer)
+    val nextStart = (layer.startTime + seconds).coerceIn(0f, TIMELINE_DURATION_SECONDS - duration)
+
+    return layer.copy(
+        startTime = nextStart,
+        endTime = nextStart + duration
+    )
+}
+
+private fun trimLayerStart(
+    layer: AtmosphereLayer,
+    seconds: Float
+): AtmosphereLayer {
+    val latestStart = (layer.endTime - 2f).coerceAtLeast(0f)
+    val nextStart = (layer.startTime + seconds).coerceIn(0f, latestStart)
+
+    return layer.copy(startTime = nextStart)
+}
+
+private fun trimLayerEnd(
+    layer: AtmosphereLayer,
+    seconds: Float
+): AtmosphereLayer {
+    val earliestEnd = (layer.startTime + 2f).coerceAtMost(TIMELINE_DURATION_SECONDS)
+    val nextEnd = (layer.endTime + seconds).coerceIn(earliestEnd, TIMELINE_DURATION_SECONDS)
+
+    return layer.copy(endTime = nextEnd)
+}
+
+private fun snapLayerToPlayhead(
+    layer: AtmosphereLayer,
+    playheadSeconds: Float
+): AtmosphereLayer {
+    val duration = layerDuration(layer)
+    val nextStart = playheadSeconds.coerceIn(0f, TIMELINE_DURATION_SECONDS - duration)
+
+    return layer.copy(
+        startTime = nextStart,
+        endTime = nextStart + duration
+    )
+}
+
+private fun layerDuration(layer: AtmosphereLayer): Float {
+    return (layer.endTime - layer.startTime).coerceIn(2f, TIMELINE_DURATION_SECONDS)
 }
 
 private fun addTimelineLayer(
