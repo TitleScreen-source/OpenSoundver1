@@ -52,7 +52,17 @@ import kotlin.math.roundToInt
 
 private const val CHARACTER_MAIN_LAYER_ID = "character-main"
 private const val TEXT_MAIN_LAYER_ID = "text-main"
+private const val EFFECT_MAIN_LAYER_ID = "effect-glow"
+private const val BACKGROUND_MAIN_LAYER_ID = "background-main"
+private const val WAVE_MAIN_LAYER_ID = "wave-main"
 private const val TIMELINE_DURATION_SECONDS = 100f
+private val PROTECTED_LAYER_IDS = setOf(
+    CHARACTER_MAIN_LAYER_ID,
+    TEXT_MAIN_LAYER_ID,
+    EFFECT_MAIN_LAYER_ID,
+    BACKGROUND_MAIN_LAYER_ID,
+    WAVE_MAIN_LAYER_ID
+)
 
 @Composable
 fun TrackStudioScreen(
@@ -129,6 +139,17 @@ fun TrackStudioScreen(
             previewTimeSeconds = previewTimeSeconds,
             onPreviewTimeChange = { previewTimeSeconds = it },
             selectedLayerId = selectedLayerId,
+            onAddLayer = { type ->
+                addTimelineLayer(
+                    config = draftConfig,
+                    type = type,
+                    playheadSeconds = previewTimeSeconds
+                ).let { result ->
+                    draftConfig = result.first
+                    selectedLayerId = result.second
+                    selectedSection = sectionForType(type)
+                }
+            },
             onDuplicateLayer = {
                 duplicateSelectedLayer(
                     config = draftConfig,
@@ -139,15 +160,30 @@ fun TrackStudioScreen(
                     selectedSection = "Timing"
                 }
             },
+            onDeleteLayer = {
+                deleteSelectedLayer(
+                    config = draftConfig,
+                    selectedLayerId = selectedLayerId
+                )?.let { result ->
+                    draftConfig = result.first
+                    selectedLayerId = result.second
+                    selectedSection = timelineLayersFor(result.first)
+                        .firstOrNull { it.id == result.second }
+                        ?.let { sectionForLayer(it) }
+                        ?: "Timing"
+                }
+            },
+            onToggleLayerVisibility = { layer ->
+                draftConfig = syncPrimaryLayers(
+                    toggleLayerVisibility(
+                        config = draftConfig,
+                        layerId = layer.id
+                    )
+                )
+            },
             onLayerSelected = { layer ->
                 selectedLayerId = layer.id
-                selectedSection = when (layer.type) {
-                    AtmosphereLayerType.Character -> "Character"
-                    AtmosphereLayerType.Text -> "Text"
-                    AtmosphereLayerType.Effect -> "Scene"
-                    AtmosphereLayerType.Background -> "Assets"
-                    AtmosphereLayerType.Wave -> "Timing"
-                }
+                selectedSection = sectionForLayer(layer)
             }
         )
 
@@ -301,30 +337,62 @@ private fun TimelinePanel(
     previewTimeSeconds: Float,
     onPreviewTimeChange: (Float) -> Unit,
     selectedLayerId: String,
+    onAddLayer: (AtmosphereLayerType) -> Unit,
     onDuplicateLayer: () -> Unit,
+    onDeleteLayer: () -> Unit,
+    onToggleLayerVisibility: (AtmosphereLayer) -> Unit,
     onLayerSelected: (AtmosphereLayer) -> Unit
 ) {
     val selectedLayer = layers.firstOrNull { it.id == selectedLayerId }
+    var showAddLayerTypes by remember {
+        mutableStateOf(false)
+    }
 
     StudioPanel(title = "Atmosphere timeline") {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TimelineActionButton("+ Layer", modifier = Modifier.weight(1f))
+            TimelineActionButton(
+                label = if (showAddLayerTypes) "Cancel" else "+ Layer",
+                modifier = Modifier.weight(1f),
+                onClick = { showAddLayerTypes = !showAddLayerTypes }
+            )
             TimelineActionButton(
                 label = "Duplicate",
                 modifier = Modifier.weight(1f),
                 onClick = onDuplicateLayer
             )
-            TimelineActionButton("Delete", modifier = Modifier.weight(1f))
+            TimelineActionButton(
+                label = "Delete",
+                modifier = Modifier.weight(1f),
+                enabled = selectedLayer?.id?.let { !isProtectedLayer(it) } == true,
+                onClick = onDeleteLayer
+            )
+        }
+
+        if (showAddLayerTypes) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(AtmosphereLayerType.values().toList()) { type ->
+                    SectionChip(
+                        name = layerTypeLabel(type),
+                        selected = false,
+                        onClick = {
+                            onAddLayer(type)
+                            showAddLayerTypes = false
+                        }
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
             text = "Playhead: ${previewTimeSeconds.roundToInt()}s" +
-                if (selectedLayer != null) " • Selected: ${selectedLayer.name}" else "",
+                if (selectedLayer != null) " - Selected: ${selectedLayer.name}" else "",
             color = Color(0xFFA9A1B6)
         )
 
@@ -346,6 +414,7 @@ private fun TimelinePanel(
                 layer = layer,
                 previewTimeSeconds = previewTimeSeconds,
                 isSelected = selectedLayerId == layer.id,
+                onToggleVisibility = { onToggleLayerVisibility(layer) },
                 onClick = { onLayerSelected(layer) }
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -357,24 +426,25 @@ private fun TimelinePanel(
 private fun TimelineActionButton(
     label: String,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     onClick: () -> Unit = {}
 ) {
     Box(
         modifier = modifier
             .height(38.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.07f))
+            .background(Color.White.copy(alpha = if (enabled) 0.07f else 0.03f))
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.1f),
+                color = Color.White.copy(alpha = if (enabled) 0.1f else 0.05f),
                 shape = RoundedCornerShape(14.dp)
             )
-            .clickable { onClick() },
+            .clickable(enabled = enabled) { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
-            color = Color.White,
+            color = Color.White.copy(alpha = if (enabled) 1f else 0.38f),
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -385,6 +455,7 @@ private fun TimelineLayerRow(
     layer: AtmosphereLayer,
     previewTimeSeconds: Float,
     isSelected: Boolean,
+    onToggleVisibility: () -> Unit,
     onClick: () -> Unit
 ) {
     val accentColor = colorForLayer(layer.type)
@@ -398,11 +469,35 @@ private fun TimelineLayerRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .width(40.dp)
+                .height(30.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.White.copy(alpha = if (layer.isVisible) 0.08f else 0.03f))
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = if (layer.isVisible) 0.12f else 0.05f),
+                    shape = RoundedCornerShape(10.dp)
+                )
+                .clickable { onToggleVisibility() },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (layer.isVisible) "ON" else "OFF",
+                color = Color.White.copy(alpha = if (layer.isVisible) 0.9f else 0.45f),
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
         Text(
             text = layer.name,
-            color = Color(0xFFC8BED8),
+            color = Color(0xFFC8BED8).copy(alpha = if (layer.isVisible) 1f else 0.42f),
             maxLines = 1,
-            modifier = Modifier.width(82.dp)
+            modifier = Modifier.width(72.dp)
         )
 
         Box(
@@ -427,10 +522,22 @@ private fun TimelineLayerRow(
                         .weight((clipEnd - clipStart).coerceAtLeast(1f))
                         .height(30.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(accentColor.copy(alpha = if (isSelected) 0.72f else 0.42f))
+                        .background(
+                            accentColor.copy(
+                                alpha = when {
+                                    !layer.isVisible -> 0.16f
+                                    isSelected -> 0.72f
+                                    else -> 0.42f
+                                }
+                            )
+                        )
                         .border(
                             width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) Color.White.copy(alpha = 0.55f) else accentColor.copy(alpha = 0.5f),
+                            color = if (isSelected) {
+                                Color.White.copy(alpha = if (layer.isVisible) 0.55f else 0.22f)
+                            } else {
+                                accentColor.copy(alpha = if (layer.isVisible) 0.5f else 0.18f)
+                            },
                             shape = RoundedCornerShape(10.dp)
                         )
                         .clickable { onClick() },
@@ -438,7 +545,7 @@ private fun TimelineLayerRow(
                 ) {
                     Text(
                         text = clipLabel(layer),
-                        color = Color.White,
+                        color = Color.White.copy(alpha = if (layer.isVisible) 1f else 0.5f),
                         maxLines = 1,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
@@ -514,12 +621,26 @@ private fun timelineLayersFor(config: AtmosphereConfig): List<AtmosphereLayer> {
 }
 
 private fun sectionForLayer(layer: AtmosphereLayer): String {
-    return when (layer.type) {
+    return sectionForType(layer.type)
+}
+
+private fun sectionForType(type: AtmosphereLayerType): String {
+    return when (type) {
         AtmosphereLayerType.Character -> "Character"
         AtmosphereLayerType.Text -> "Text"
         AtmosphereLayerType.Effect -> "Scene"
         AtmosphereLayerType.Background -> "Assets"
         AtmosphereLayerType.Wave -> "Timing"
+    }
+}
+
+private fun layerTypeLabel(type: AtmosphereLayerType): String {
+    return when (type) {
+        AtmosphereLayerType.Character -> "Character"
+        AtmosphereLayerType.Text -> "Text"
+        AtmosphereLayerType.Effect -> "Effect"
+        AtmosphereLayerType.Background -> "Background"
+        AtmosphereLayerType.Wave -> "Wave"
     }
 }
 
@@ -727,6 +848,149 @@ private fun yBoundsFor(type: AtmosphereLayerType): Pair<Float, Float> {
         AtmosphereLayerType.Text -> -55f to 105f
         AtmosphereLayerType.Character -> -155f to 70f
         else -> -155f to 105f
+    }
+}
+
+private fun addTimelineLayer(
+    config: AtmosphereConfig,
+    type: AtmosphereLayerType,
+    playheadSeconds: Float
+): Pair<AtmosphereConfig, String> {
+    val start = playheadSeconds.coerceIn(0f, TIMELINE_DURATION_SECONDS - 2f)
+    val duration = defaultLayerDuration(type)
+    val end = (start + duration).coerceIn(start + 2f, TIMELINE_DURATION_SECONDS)
+    val idPrefix = layerIdPrefix(type)
+    val newId = nextLayerId(config, idPrefix)
+    val layerNumber = config.layers.count { it.type == type } + 1
+    val layer = when (type) {
+        AtmosphereLayerType.Character -> AtmosphereLayer(
+            id = newId,
+            type = type,
+            name = "Character $layerNumber",
+            startTime = start,
+            endTime = end,
+            assetRef = "test-character.png",
+            x = config.characterX,
+            y = config.characterY,
+            scale = config.characterSize / 100f,
+            accentColor = config.accentColor
+        )
+        AtmosphereLayerType.Text -> AtmosphereLayer(
+            id = newId,
+            type = type,
+            name = "Text cue $layerNumber",
+            startTime = start,
+            endTime = end,
+            y = -10f,
+            text = "TEXT CUE",
+            accentColor = config.accentColor
+        )
+        AtmosphereLayerType.Effect -> AtmosphereLayer(
+            id = newId,
+            type = type,
+            name = "Effect $layerNumber",
+            startTime = start,
+            endTime = end,
+            accentColor = config.accentColor,
+            animationIn = "Fade",
+            animationOut = "Pulse"
+        )
+        AtmosphereLayerType.Background -> AtmosphereLayer(
+            id = newId,
+            type = type,
+            name = "Background $layerNumber",
+            startTime = start,
+            endTime = end,
+            assetRef = "test-cover.jpg",
+            accentColor = config.accentColor
+        )
+        AtmosphereLayerType.Wave -> AtmosphereLayer(
+            id = newId,
+            type = type,
+            name = "Wave $layerNumber",
+            startTime = start,
+            endTime = end,
+            assetRef = "test-audio.mp3",
+            accentColor = config.accentColor
+        )
+    }
+
+    return syncPrimaryLayers(
+        config.copy(layers = config.layers + layer)
+    ) to newId
+}
+
+private fun deleteSelectedLayer(
+    config: AtmosphereConfig,
+    selectedLayerId: String
+): Pair<AtmosphereConfig, String>? {
+    if (isProtectedLayer(selectedLayerId)) return null
+
+    val layerIndex = config.layers.indexOfFirst { it.id == selectedLayerId }
+    if (layerIndex == -1) return null
+
+    val nextLayers = config.layers.filterNot { it.id == selectedLayerId }
+    val nextSelectedId = nextLayers
+        .getOrNull(layerIndex.coerceAtMost(nextLayers.lastIndex))
+        ?.id
+        ?: TEXT_MAIN_LAYER_ID
+
+    return syncPrimaryLayers(
+        config.copy(layers = nextLayers)
+    ) to nextSelectedId
+}
+
+private fun toggleLayerVisibility(
+    config: AtmosphereConfig,
+    layerId: String
+): AtmosphereConfig {
+    return config.copy(
+        layers = config.layers.map { layer ->
+            if (layer.id == layerId) {
+                layer.copy(isVisible = !layer.isVisible)
+            } else {
+                layer
+            }
+        }
+    )
+}
+
+private fun isProtectedLayer(layerId: String): Boolean {
+    return layerId in PROTECTED_LAYER_IDS
+}
+
+private fun nextLayerId(
+    config: AtmosphereConfig,
+    prefix: String
+): String {
+    var nextIndex = config.layers.count { it.id.startsWith(prefix) } + 1
+    var nextId = "$prefix-$nextIndex"
+
+    while (config.layers.any { it.id == nextId }) {
+        nextIndex += 1
+        nextId = "$prefix-$nextIndex"
+    }
+
+    return nextId
+}
+
+private fun layerIdPrefix(type: AtmosphereLayerType): String {
+    return when (type) {
+        AtmosphereLayerType.Character -> "character"
+        AtmosphereLayerType.Text -> "text"
+        AtmosphereLayerType.Effect -> "effect"
+        AtmosphereLayerType.Background -> "background"
+        AtmosphereLayerType.Wave -> "wave"
+    }
+}
+
+private fun defaultLayerDuration(type: AtmosphereLayerType): Float {
+    return when (type) {
+        AtmosphereLayerType.Character -> 16f
+        AtmosphereLayerType.Text -> 12f
+        AtmosphereLayerType.Effect -> 10f
+        AtmosphereLayerType.Background -> 24f
+        AtmosphereLayerType.Wave -> 24f
     }
 }
 
