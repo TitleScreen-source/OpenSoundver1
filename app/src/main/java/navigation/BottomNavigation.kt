@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun BottomNavigation(
-    currentScreen: String,
-    onScreenSelected: (String) -> Unit,
+    currentScreen: AudMoraScreen,
+    onScreenSelected: (AudMoraScreen) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -45,34 +45,35 @@ fun BottomNavigation(
         verticalAlignment = Alignment.CenterVertically
     ) {
         BottomItem(
-            selected = currentScreen == "home",
+            selected = currentScreen == AudMoraScreen.Home,
             icon = "H",
             label = "\u0413\u043B\u0430\u0432\u043D\u0430\u044F",
-            onClick = { onScreenSelected("home") },
+            onClick = { onScreenSelected(AudMoraScreen.Home) },
             modifier = Modifier.weight(1f)
         )
 
         BottomItem(
-            selected = currentScreen == "search",
+            selected = currentScreen == AudMoraScreen.Search,
             icon = "S",
             label = "\u041F\u043E\u0438\u0441\u043A",
-            onClick = { onScreenSelected("search") },
+            onClick = { onScreenSelected(AudMoraScreen.Search) },
             modifier = Modifier.weight(1f)
         )
 
         BottomItem(
-            selected = currentScreen == "library",
+            selected = currentScreen == AudMoraScreen.Library,
             icon = "M",
             label = "\u0411\u0438\u0431\u043B\u0438\u043E\u0442\u0435\u043A\u0430",
-            onClick = { onScreenSelected("library") },
+            onClick = { onScreenSelected(AudMoraScreen.Library) },
             modifier = Modifier.weight(1f)
         )
 
         BottomItem(
-            selected = currentScreen == "profile" || currentScreen == "studio",
+            selected = currentScreen == AudMoraScreen.ArtistProfile ||
+                currentScreen == AudMoraScreen.TrackStudio,
             icon = "P",
             label = "\u041F\u0440\u043E\u0444\u0438\u043B\u044C",
-            onClick = { onScreenSelected("profile") },
+            onClick = { onScreenSelected(AudMoraScreen.ArtistProfile) },
             modifier = Modifier.weight(1f)
         )
     }

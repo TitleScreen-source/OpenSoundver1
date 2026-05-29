@@ -2,14 +2,9 @@ package com.opensound.app
 
 import android.app.Activity
 import android.graphics.Color as AndroidColor
-import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.core.view.WindowInsetsControllerCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,19 +14,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
-import com.opensound.app.models.AtmosphereConfig
-import com.opensound.app.models.Track
-import com.opensound.app.models.atmospherePresets
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.ViewModelProvider
+import com.opensound.app.navigation.AudMoraScreen
 import com.opensound.app.navigation.BottomNavigation
+import com.opensound.app.playback.MediaPlayerPlaybackEffect
 import com.opensound.app.player.FullPlayer
 import com.opensound.app.player.MiniPlayer
 import com.opensound.app.screens.ArtistProfileScreen
@@ -40,11 +36,19 @@ import com.opensound.app.screens.LibraryScreen
 import com.opensound.app.screens.SearchScreen
 import com.opensound.app.screens.TrackStudioScreen
 import com.opensound.app.screens.UserProfileScreen
-import kotlinx.coroutines.delay
+import com.opensound.app.state.AudMoraViewModel
+import com.opensound.app.ui.theme.AudMoraTheme
 
 class MainActivity : ComponentActivity() {
+    private lateinit var viewModel: AudMoraViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = ViewModelProvider(
+            this,
+            AudMoraViewModel.factory()
+        )[AudMoraViewModel::class.java]
+
         window.statusBarColor = AndroidColor.rgb(8, 7, 13)
         window.navigationBarColor = AndroidColor.rgb(8, 7, 13)
         WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -53,99 +57,36 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            OpenSoundApp()
+            AudMoraTheme {
+                AudMoraApp(viewModel = viewModel)
+            }
         }
     }
 }
+
 @Composable
-fun OpenSoundApp() {
+fun AudMoraApp(viewModel: AudMoraViewModel) {
     val context = LocalContext.current
     val activity = context as? Activity
+    val uiState by viewModel.uiState.collectAsState()
 
-    val tracks = listOf(
-        Track("I Feel Sick", "Subaru Natsuki", isShowcase = true),
-        Track("Night Drive", "Synth Waves"),
-        Track("Lost Signal", "AUDMORA Artist"),
-        Track("Echo Dreams", "Cyber Pulse"),
-        Track("Midnight City", "Neon Empire")
+    MediaPlayerPlaybackEffect(
+        audioResId = viewModel.selectedAudioRes,
+        isPlaying = uiState.isPlaying,
+        onPlaybackSecondsChanged = viewModel::updatePlaybackSeconds,
+        onPlaybackCompleted = viewModel::completePlayback
     )
 
-    var selectedTrack by remember {
-        mutableStateOf(tracks[0])
-    }
-
-    val selectedAudioRes = if (selectedTrack.isShowcase) {
-        R.raw.rezero_showcase
-    } else {
-        R.raw.track1
-    }
-
-    val mediaPlayer = remember(selectedAudioRes) {
-        MediaPlayer.create(context, selectedAudioRes)
-    }
-
-    var isPlaying by remember {
-        mutableStateOf(false)
-    }
-
-    var playbackSeconds by remember {
-        mutableStateOf(0f)
-    }
-
-    var isFullPlayerOpen by remember {
-        mutableStateOf(false)
-    }
-    var currentScreen by remember {
-        mutableStateOf("profile")
-    }
-    var atmosphereConfigs by remember {
-        mutableStateOf(
-            mapOf(
-                "Night Drive" to atmospherePresets[0],
-                "Lost Signal" to atmospherePresets[1],
-                "Echo Dreams" to atmospherePresets[2],
-                "Midnight City" to atmospherePresets[3]
-            )
-        )
-    }
-
-    val selectedAtmosphereConfig = atmosphereConfigs[selectedTrack.title] ?: AtmosphereConfig()
-    val showPersistentPlayer = currentScreen != "studio"
-    val isShowcaseProfile = selectedTrack.isShowcase && currentScreen == "profile"
-
-    DisposableEffect(mediaPlayer) {
-        mediaPlayer.setOnCompletionListener { player ->
-            player.seekTo(0)
-            isPlaying = false
-            playbackSeconds = 0f
-        }
-
-        onDispose {
-            mediaPlayer.release()
-        }
-    }
-
-    LaunchedEffect(mediaPlayer, isPlaying) {
-        if (isPlaying && !mediaPlayer.isPlaying) {
-            mediaPlayer.start()
-        }
-
-        while (isPlaying) {
-            playbackSeconds = mediaPlayer.currentPosition / 1000f
-            delay(33L)
-        }
-    }
-
-    DisposableEffect(isFullPlayerOpen, isShowcaseProfile, activity) {
+    DisposableEffect(uiState.isFullPlayerOpen, uiState.isShowcaseProfile, activity) {
         val controller = activity?.window?.let { window ->
             WindowInsetsControllerCompat(window, window.decorView)
         }
 
-        if (isFullPlayerOpen) {
+        if (uiState.isFullPlayerOpen) {
             controller?.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             controller?.hide(WindowInsetsCompat.Type.systemBars())
-        } else if (isShowcaseProfile) {
+        } else if (uiState.isShowcaseProfile) {
             controller?.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             controller?.hide(WindowInsetsCompat.Type.statusBars())
@@ -159,27 +100,6 @@ fun OpenSoundApp() {
         }
     }
 
-    fun togglePlay() {
-        if (mediaPlayer.isPlaying) {
-            mediaPlayer.pause()
-            isPlaying = false
-        } else {
-            mediaPlayer.start()
-            isPlaying = true
-        }
-    }
-
-    fun selectTrackAndPlay(track: Track) {
-        if (track != selectedTrack) {
-            selectedTrack = track
-            playbackSeconds = 0f
-            isPlaying = true
-        } else if (!mediaPlayer.isPlaying) {
-            mediaPlayer.start()
-            isPlaying = true
-        }
-    }
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color(0xFF101014)
@@ -187,82 +107,61 @@ fun OpenSoundApp() {
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            when (currentScreen) {
-                "home" -> HomeScreen(
-                    tracks = tracks,
-                    selectedTrack = selectedTrack,
-                    onTrackClick = { track ->
-                        selectTrackAndPlay(track)
-                    }
+            when (uiState.currentScreen) {
+                AudMoraScreen.Home -> HomeScreen(
+                    tracks = uiState.tracks,
+                    selectedTrack = uiState.selectedTrack,
+                    onTrackClick = viewModel::selectTrackAndPlay
                 )
 
-                "profile" -> ArtistProfileScreen(
-                    tracks = tracks,
-                    showcaseMode = selectedTrack.isShowcase,
-                    playbackSeconds = playbackSeconds,
-                    onTrackClick = { track ->
-                        selectTrackAndPlay(track)
-                    },
-                    onAddTrackClick = {
-                        currentScreen = "studio"
-                    }
-                )
-                "studio" -> TrackStudioScreen(
-                    track = selectedTrack,
-                    initialConfig = selectedAtmosphereConfig,
-                    onSave = { newConfig ->
-                        atmosphereConfigs = atmosphereConfigs + (selectedTrack.title to newConfig)
-                        currentScreen = "profile"
-                    },
-                    onClose = {
-                        currentScreen = "profile"
-                    }
-                )
-                "search" -> SearchScreen(
-                    tracks = tracks,
-                    onTrackClick = { track ->
-                        selectTrackAndPlay(track)
-                    }
+                AudMoraScreen.ArtistProfile -> ArtistProfileScreen(
+                    tracks = uiState.tracks,
+                    showcaseMode = uiState.selectedTrack.isShowcase,
+                    playbackSeconds = uiState.playbackSeconds,
+                    onTrackClick = viewModel::selectTrackAndPlay,
+                    onAddTrackClick = viewModel::openTrackStudio
                 )
 
-                "library" -> LibraryScreen(
-                    tracks = tracks,
-                    selectedTrack = selectedTrack,
-                    onTrackClick = { track ->
-                        selectTrackAndPlay(track)
-                    }
+                AudMoraScreen.TrackStudio -> TrackStudioScreen(
+                    track = uiState.selectedTrack,
+                    initialConfig = uiState.selectedAtmosphereConfig,
+                    onSave = viewModel::saveAtmosphere,
+                    onClose = viewModel::closeTrackStudio
                 )
 
-                "userProfile" -> UserProfileScreen(
-                    tracks = tracks,
-                    onTrackClick = { track ->
-                        selectTrackAndPlay(track)
-                    }
+                AudMoraScreen.Search -> SearchScreen(
+                    tracks = uiState.tracks,
+                    onTrackClick = viewModel::selectTrackAndPlay
+                )
+
+                AudMoraScreen.Library -> LibraryScreen(
+                    tracks = uiState.tracks,
+                    selectedTrack = uiState.selectedTrack,
+                    onTrackClick = viewModel::selectTrackAndPlay
+                )
+
+                AudMoraScreen.UserProfile -> UserProfileScreen(
+                    tracks = uiState.tracks,
+                    onTrackClick = viewModel::selectTrackAndPlay
                 )
             }
 
-            if (showPersistentPlayer) {
+            if (uiState.showPersistentPlayer) {
                 MiniPlayer(
-                    atmosphereConfig = selectedAtmosphereConfig,
-                    track = selectedTrack,
-                    isPlaying = isPlaying,
-                    playbackSeconds = playbackSeconds,
-                    onPlayPauseClick = {
-                        togglePlay()
-                    },
-                    onOpenFullPlayer = {
-                        isFullPlayerOpen = true
-                    },
+                    atmosphereConfig = uiState.selectedAtmosphereConfig,
+                    track = uiState.selectedTrack,
+                    isPlaying = uiState.isPlaying,
+                    playbackSeconds = uiState.playbackSeconds,
+                    onPlayPauseClick = viewModel::togglePlay,
+                    onOpenFullPlayer = viewModel::openFullPlayer,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .zIndex(2f)
                 )
 
                 BottomNavigation(
-                    currentScreen = currentScreen,
-                    onScreenSelected = { screen ->
-                        currentScreen = screen
-                    },
+                    currentScreen = uiState.currentScreen,
+                    onScreenSelected = viewModel::selectScreen,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .zIndex(1f)
@@ -270,7 +169,7 @@ fun OpenSoundApp() {
             }
 
             AnimatedVisibility(
-                visible = isFullPlayerOpen,
+                visible = uiState.isFullPlayerOpen,
                 enter = slideInVertically(
                     initialOffsetY = { fullHeight -> fullHeight }
                 ) + fadeIn(),
@@ -280,15 +179,11 @@ fun OpenSoundApp() {
                 modifier = Modifier.zIndex(10f)
             ) {
                 FullPlayer(
-                    track = selectedTrack,
-                    isPlaying = isPlaying,
-                    atmosphereConfig = selectedAtmosphereConfig,
-                    onPlayPauseClick = {
-                        togglePlay()
-                    },
-                    onClose = {
-                        isFullPlayerOpen = false
-                    },
+                    track = uiState.selectedTrack,
+                    isPlaying = uiState.isPlaying,
+                    atmosphereConfig = uiState.selectedAtmosphereConfig,
+                    onPlayPauseClick = viewModel::togglePlay,
+                    onClose = viewModel::closeFullPlayer,
                     modifier = Modifier.fillMaxSize()
                 )
             }

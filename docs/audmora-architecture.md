@@ -1,0 +1,52 @@
+# AudMora architecture notes
+
+AudMora is the current product name. `OpenSound` remains in the package name and app id for now to avoid a noisy migration. Rename it deliberately later, in a separate session.
+
+## Product direction
+
+AudMora is a music app in the Spotify / SoundCloud space, but its differentiator is atmosphere:
+
+- atmospheric artist profiles
+- live visual mini-player
+- track atmosphere editor
+- cohesive dark visual style
+- showcase / reels cases that set the target quality bar
+
+The showcase code is a reference layer, not disposable prototype code. Keep it separate from regular app architecture.
+
+## Current architecture slice
+
+- `com.opensound.app.data`
+  - Local catalog seed data and resource selection.
+  - This is the future place to hide API / database sources behind repository APIs.
+- `com.opensound.app.state`
+  - App-level UI state and `AudMoraViewModel`.
+  - MainActivity should delegate state transitions here instead of owning feature state.
+- `com.opensound.app.navigation`
+  - Typed screen enum and bottom navigation.
+  - Avoid route strings in UI code.
+- `com.opensound.app.playback`
+  - Playback side effects around `MediaPlayer`.
+  - This is a stepping stone toward a richer playback service or Media3 layer.
+- `com.opensound.app.showcase`
+  - Reference reels/profile visuals.
+  - New visual showcase cases should live here or in a child package.
+
+## Growth rules for future sessions
+
+- Keep `MainActivity` thin: setup, theme, root composition only.
+- Prefer typed state and events over loose strings and scattered `remember` state.
+- Add new data through repositories first, even if the first implementation is local/mock.
+- Let regular product UI and showcase/reference UI share models only when the model is truly stable.
+- Do not split large visual files mechanically. Extract around real concepts: timeline, layers, cues, render effects, controls.
+- Add tests for reducers, repositories, route mapping, and editor constraints before broad UI tests.
+- Treat playback as state-driven: UI asks for play/pause/track changes, playback effects report progress/completion.
+
+## Next likely architecture steps
+
+- Rename user-facing code from OpenSound to AudMora where it does not force package/app-id churn.
+- Split `TrackStudioScreen` by editor domains: timeline, scene style, character layer, text cue, assets.
+- Introduce stable ids for tracks instead of title-based maps.
+- Move `MediaPlayer` behind an interface so tests can cover playback decisions without Android runtime.
+- Add a repository contract for tracks, profiles, and atmosphere scenes.
+- Create a dedicated state holder for the editor draft instead of keeping all editor state inside `TrackStudioScreen`.
