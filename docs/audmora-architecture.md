@@ -34,6 +34,7 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
   - This is a stepping stone toward a richer playback service, MediaSession, or Media3 layer.
 - `com.opensound.app.editor`
   - Track Studio editor state and section vocabulary.
+  - Timeline/layer operations such as add, duplicate, delete, trim, snap, and protected-layer rules.
   - This keeps editor concepts typed before the large screen is split by feature area.
 - `com.opensound.app.showcase`
   - Reference reels/profile visuals.
@@ -80,7 +81,7 @@ Track Studio is the future creative center of AudMora. It will likely grow into 
 - source assets
 - preview/playhead behavior
 
-The current screen is still large, but editor state now uses `TrackStudioEditorState` and `TrackStudioSection`. This matters because section strings such as `Scene` or `Timing` are not safe growth points: a typo compiles and quietly breaks UI flow. A typed section enum lets future refactors move each editor domain into separate files while preserving navigation between editor sections.
+The current screen is still large, but editor state now uses `TrackStudioEditorState` and `TrackStudioSection`. Timeline rules live in `TrackStudioTimelineOperations`. This matters because section strings such as `Scene` or `Timing` and clip operations such as duplicate/delete/trim are product rules, not visual decoration. Keeping them outside Compose makes them testable and easier to preserve while the UI changes.
 
 ## Growth rules for future sessions
 
