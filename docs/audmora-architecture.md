@@ -26,8 +26,10 @@ The showcase code is a reference layer, not disposable prototype code. Keep it s
   - Typed screen enum and bottom navigation.
   - Avoid route strings in UI code.
 - `com.opensound.app.playback`
-  - Playback side effects around `MediaPlayer`.
-  - This is a stepping stone toward a richer playback service or Media3 layer.
+  - Playback interface and Compose side effects.
+  - `AudioPlaybackEngine` is the app-facing contract.
+  - `AndroidMediaPlayerAudioEngine` is the current Android implementation.
+  - This is a stepping stone toward a richer playback service, MediaSession, or Media3 layer.
 - `com.opensound.app.showcase`
   - Reference reels/profile visuals.
   - New visual showcase cases should live here or in a child package.
@@ -47,6 +49,21 @@ Do not key app state by `Track.title`. Use `Track.id`.
 
 `Track.visualMode` describes how the track should be rendered visually. A showcase/reels track is a visual mode, not a separate kind of audio logic. This keeps the reference content useful without making the product architecture depend on one demo case.
 
+## Playback boundary
+
+UI and app state should not call Android `MediaPlayer` directly. They should describe intent: selected audio source, desired play/pause state, progress updates, and completion.
+
+`AudioPlaybackEffect` translates that state into playback commands. The current engine is still `MediaPlayer`, but it is hidden behind `AudioPlaybackEngine`. This matters because real music apps usually outgrow the basic player quickly:
+
+- background playback
+- lock-screen and notification controls
+- Bluetooth/headset controls
+- queue and next/previous track behavior
+- buffering, streaming, and cache
+- MediaSession / Media3 integration
+
+Keeping the boundary small lets us replace the engine later without rewriting screens.
+
 ## Growth rules for future sessions
 
 - Keep `MainActivity` thin: setup, theme, root composition only.
@@ -61,6 +78,7 @@ Do not key app state by `Track.title`. Use `Track.id`.
 
 - Rename user-facing code from OpenSound to AudMora where it does not force package/app-id churn.
 - Split `TrackStudioScreen` by editor domains: timeline, scene style, character layer, text cue, assets.
-- Move `MediaPlayer` behind an interface so tests can cover playback decisions without Android runtime.
+- Add seek/progress semantics to the playback boundary.
+- Decide when to migrate from `MediaPlayer` to Media3/ExoPlayer.
 - Add a repository contract for tracks, profiles, and atmosphere scenes.
 - Create a dedicated state holder for the editor draft instead of keeping all editor state inside `TrackStudioScreen`.

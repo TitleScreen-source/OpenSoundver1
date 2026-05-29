@@ -27,7 +27,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import com.opensound.app.navigation.AudMoraScreen
 import com.opensound.app.navigation.BottomNavigation
-import com.opensound.app.playback.MediaPlayerPlaybackEffect
+import com.opensound.app.playback.AudioPlaybackEffect
 import com.opensound.app.player.FullPlayer
 import com.opensound.app.player.MiniPlayer
 import com.opensound.app.screens.ArtistProfileScreen
@@ -70,7 +70,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
     val activity = context as? Activity
     val uiState by viewModel.uiState.collectAsState()
 
-    MediaPlayerPlaybackEffect(
+    AudioPlaybackEffect(
         audioResId = viewModel.selectedAudioRes,
         isPlaying = uiState.isPlaying,
         onPlaybackSecondsChanged = viewModel::updatePlaybackSeconds,
