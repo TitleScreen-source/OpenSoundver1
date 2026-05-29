@@ -32,6 +32,7 @@ import androidx.compose.ui.zIndex
 import com.opensound.app.R
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
+import com.opensound.app.showcase.ReelsShowcaseMiniPlayer
 import kotlin.math.roundToInt
 
 @Composable
