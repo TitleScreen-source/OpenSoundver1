@@ -14,6 +14,8 @@ AudMora is a music app in the Spotify / SoundCloud space, but its differentiator
 
 The showcase code is a reference layer, not disposable prototype code. Keep it separate from regular app architecture.
 
+Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short version: keep AudMora as a lightweight app shell, and load music/atmosphere/user content by id, URL, and cache rather than bundling it into the APK.
+
 ## Current architecture slice
 
 - `com.opensound.app.data`
