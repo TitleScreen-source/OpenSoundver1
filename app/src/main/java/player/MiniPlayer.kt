@@ -49,9 +49,9 @@ fun MiniPlayer(
         .fillMaxWidth()
         .navigationBarsPadding()
         .padding(horizontal = 20.dp)
-        .padding(bottom = if (track.isShowcase) 96.dp else 120.dp)
+        .padding(bottom = if (track.usesShowcaseVisuals) 96.dp else 120.dp)
 
-    if (track.isShowcase) {
+    if (track.usesShowcaseVisuals) {
         ReelsShowcaseMiniPlayer(
             track = track,
             isPlaying = isPlaying,

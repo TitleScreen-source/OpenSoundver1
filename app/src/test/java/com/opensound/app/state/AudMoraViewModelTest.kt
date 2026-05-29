@@ -14,14 +14,16 @@ class AudMoraViewModelTest {
         val state = viewModel.uiState.value
 
         assertEquals(AudMoraScreen.ArtistProfile, state.currentScreen)
-        assertTrue(state.selectedTrack.isShowcase)
+        assertTrue(state.selectedTrack.usesShowcaseVisuals)
         assertTrue(state.isShowcaseProfile)
     }
 
     @Test
     fun selectTrackAndPlay_startsPlaybackAndResetsPositionForNewTrack() {
         val viewModel = AudMoraViewModel()
-        val nextTrack = viewModel.uiState.value.tracks.first { track -> !track.isShowcase }
+        val nextTrack = viewModel.uiState.value.tracks.first { track ->
+            !track.usesShowcaseVisuals
+        }
 
         viewModel.updatePlaybackSeconds(12f)
         viewModel.selectTrackAndPlay(nextTrack)

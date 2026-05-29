@@ -5,7 +5,8 @@
 ## Текущий кейс
 
 - Showcase-трек: `I Feel Sick` / `Subaru Natsuki`
-- Флаг включения: `Track.isShowcase`
+- Идентификатор: `AudMoraSeedTrackIds.RezeroShowcase`
+- Визуальный режим: `TrackVisualMode.ShowcaseReels`
 - Аудио: `app/src/main/res/raw/rezero_showcase.mp3`
 - Мини-плеер reels: `app/src/main/java/showcase/ReelsShowcaseMiniPlayer.kt`
 - Showcase-профиль: `app/src/main/java/showcase/AudmoraShowcaseProfileScreen.kt`
@@ -13,8 +14,9 @@
 
 ## Как подключено
 
-- `MainActivity` выбирает showcase-аудио для трека с `isShowcase = true`.
-- `MiniPlayer` заменяет обычный `AtmosphereMiniPlayerContent` на `ReelsShowcaseMiniPlayer`.
+- `AudMoraCatalogRepository` задает треку стабильный `TrackId`, локальный `audioResId` и `TrackVisualMode.ShowcaseReels`.
+- `MainActivity` передает `usesShowcaseVisuals` в профильный экран как `showcaseMode`.
+- `MiniPlayer` заменяет обычный `AtmosphereMiniPlayerContent` на `ReelsShowcaseMiniPlayer`, если `track.usesShowcaseVisuals`.
 - `ArtistProfileScreen` при `showcaseMode` делегирует экран в `AudmoraShowcaseProfileScreen`.
 
 ## Правила для следующих кейсов
@@ -23,4 +25,4 @@
 - Не смешивать эталонные сцены с обычными экранами приложения, плеером и будущей бизнес-логикой.
 - Хранить тайминги, cue-тексты, визуальные эффекты и связанные ассеты рядом по смыслу.
 - Если эффект выглядит сложным, но задает нужный уровень качества, сохранять его как референс и упрощать только осознанно.
-- Для каждого нового showcase-кейса явно указывать точку включения через модель трека или отдельную showcase-конфигурацию.
+- Для каждого нового showcase-кейса явно указывать точку включения через `TrackId`, `TrackVisualMode` или отдельную showcase-конфигурацию.

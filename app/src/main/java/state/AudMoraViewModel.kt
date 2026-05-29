@@ -37,7 +37,7 @@ class AudMoraViewModel(
     fun saveAtmosphere(config: AtmosphereConfig) {
         _uiState.update { state ->
             state.copy(
-                atmosphereConfigs = state.atmosphereConfigs + (state.selectedTrack.title to config),
+                atmosphereConfigs = state.atmosphereConfigs + (state.selectedTrack.id to config),
                 currentScreen = AudMoraScreen.ArtistProfile
             )
         }

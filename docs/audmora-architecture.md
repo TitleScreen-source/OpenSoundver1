@@ -32,6 +32,21 @@ The showcase code is a reference layer, not disposable prototype code. Keep it s
   - Reference reels/profile visuals.
   - New visual showcase cases should live here or in a child package.
 
+## Track identity
+
+Tracks use a stable `TrackId`. This matters more than it first seems:
+
+- titles are display text and can change
+- different artists can publish tracks with the same title
+- translations and edits should not break saved atmosphere scenes
+- playback history, likes, editor drafts, comments, and uploads need a durable key
+
+Do not key app state by `Track.title`. Use `Track.id`.
+
+`Track.audioResId` is the current local prototype audio source. Later this can become a URL, media id, or cached file reference behind a playback repository.
+
+`Track.visualMode` describes how the track should be rendered visually. A showcase/reels track is a visual mode, not a separate kind of audio logic. This keeps the reference content useful without making the product architecture depend on one demo case.
+
 ## Growth rules for future sessions
 
 - Keep `MainActivity` thin: setup, theme, root composition only.
@@ -46,7 +61,6 @@ The showcase code is a reference layer, not disposable prototype code. Keep it s
 
 - Rename user-facing code from OpenSound to AudMora where it does not force package/app-id churn.
 - Split `TrackStudioScreen` by editor domains: timeline, scene style, character layer, text cue, assets.
-- Introduce stable ids for tracks instead of title-based maps.
 - Move `MediaPlayer` behind an interface so tests can cover playback decisions without Android runtime.
 - Add a repository contract for tracks, profiles, and atmosphere scenes.
 - Create a dedicated state holder for the editor draft instead of keeping all editor state inside `TrackStudioScreen`.

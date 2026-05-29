@@ -116,7 +116,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
 
                 AudMoraScreen.ArtistProfile -> ArtistProfileScreen(
                     tracks = uiState.tracks,
-                    showcaseMode = uiState.selectedTrack.isShowcase,
+                    showcaseMode = uiState.selectedTrack.usesShowcaseVisuals,
                     playbackSeconds = uiState.playbackSeconds,
                     onTrackClick = viewModel::selectTrackAndPlay,
                     onAddTrackClick = viewModel::openTrackStudio
