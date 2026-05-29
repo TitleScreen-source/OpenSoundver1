@@ -82,7 +82,7 @@ Track Studio is the future creative center of AudMora. It will likely grow into 
 - source assets
 - preview/playhead behavior
 
-The current screen is still large, but editor state now uses `TrackStudioEditorState` and `TrackStudioSection`. Timeline rules live in `TrackStudioTimelineOperations`; text/character edit rules live in `TrackStudioLayerOperations`. This matters because section strings such as `Scene` or `Timing`, clip operations such as duplicate/delete/trim, and layer rules such as text length or drag bounds are product rules, not visual decoration. Keeping them outside Compose makes them testable and easier to preserve while the UI changes.
+The current screen is still large, but editor state now uses `TrackStudioEditorState` and `TrackStudioSection`. Timeline rules live in `TrackStudioTimelineOperations`; text/character edit rules live in `TrackStudioLayerOperations`; timeline UI lives in `TrackStudioTimelinePanel`. This matters because section strings such as `Scene` or `Timing`, clip operations such as duplicate/delete/trim, layer rules such as text length or drag bounds, and timeline controls are separate reasons to change. Keeping product rules outside Compose makes them testable, and keeping large UI domains in their own files makes the editor easier to grow without losing the showcase-quality visual direction.
 
 ## Growth rules for future sessions
 
