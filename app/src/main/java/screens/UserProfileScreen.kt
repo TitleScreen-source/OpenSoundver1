@@ -55,7 +55,7 @@ fun UserProfileScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Text("@opensound", color = Color(0xFFA9A1B6))
+        Text("@audmora", color = Color(0xFFA9A1B6))
 
         Spacer(modifier = Modifier.height(22.dp))
 

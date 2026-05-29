@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.compose.animation.AnimatedVisibility
@@ -39,6 +40,7 @@ import com.opensound.app.screens.LibraryScreen
 import com.opensound.app.screens.SearchScreen
 import com.opensound.app.screens.TrackStudioScreen
 import com.opensound.app.screens.UserProfileScreen
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,13 +62,10 @@ fun OpenSoundApp() {
     val context = LocalContext.current
     val activity = context as? Activity
 
-    val mediaPlayer = remember {
-        MediaPlayer.create(context, R.raw.track1)
-    }
-
     val tracks = listOf(
+        Track("I Feel Sick", "Subaru Natsuki", isShowcase = true),
         Track("Night Drive", "Synth Waves"),
-        Track("Lost Signal", "OpenSound Artist"),
+        Track("Lost Signal", "AUDMORA Artist"),
         Track("Echo Dreams", "Cyber Pulse"),
         Track("Midnight City", "Neon Empire")
     )
@@ -75,15 +74,29 @@ fun OpenSoundApp() {
         mutableStateOf(tracks[0])
     }
 
+    val selectedAudioRes = if (selectedTrack.isShowcase) {
+        R.raw.rezero_showcase
+    } else {
+        R.raw.track1
+    }
+
+    val mediaPlayer = remember(selectedAudioRes) {
+        MediaPlayer.create(context, selectedAudioRes)
+    }
+
     var isPlaying by remember {
         mutableStateOf(false)
+    }
+
+    var playbackSeconds by remember {
+        mutableStateOf(0f)
     }
 
     var isFullPlayerOpen by remember {
         mutableStateOf(false)
     }
     var currentScreen by remember {
-        mutableStateOf("home")
+        mutableStateOf("profile")
     }
     var atmosphereConfigs by remember {
         mutableStateOf(
@@ -98,8 +111,32 @@ fun OpenSoundApp() {
 
     val selectedAtmosphereConfig = atmosphereConfigs[selectedTrack.title] ?: AtmosphereConfig()
     val showPersistentPlayer = currentScreen != "studio"
+    val isShowcaseProfile = selectedTrack.isShowcase && currentScreen == "profile"
 
-    DisposableEffect(isFullPlayerOpen, activity) {
+    DisposableEffect(mediaPlayer) {
+        mediaPlayer.setOnCompletionListener { player ->
+            player.seekTo(0)
+            isPlaying = false
+            playbackSeconds = 0f
+        }
+
+        onDispose {
+            mediaPlayer.release()
+        }
+    }
+
+    LaunchedEffect(mediaPlayer, isPlaying) {
+        if (isPlaying && !mediaPlayer.isPlaying) {
+            mediaPlayer.start()
+        }
+
+        while (isPlaying) {
+            playbackSeconds = mediaPlayer.currentPosition / 1000f
+            delay(33L)
+        }
+    }
+
+    DisposableEffect(isFullPlayerOpen, isShowcaseProfile, activity) {
         val controller = activity?.window?.let { window ->
             WindowInsetsControllerCompat(window, window.decorView)
         }
@@ -108,6 +145,11 @@ fun OpenSoundApp() {
             controller?.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             controller?.hide(WindowInsetsCompat.Type.systemBars())
+        } else if (isShowcaseProfile) {
+            controller?.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller?.hide(WindowInsetsCompat.Type.statusBars())
+            controller?.show(WindowInsetsCompat.Type.navigationBars())
         } else {
             controller?.show(WindowInsetsCompat.Type.systemBars())
         }
@@ -127,6 +169,17 @@ fun OpenSoundApp() {
         }
     }
 
+    fun selectTrackAndPlay(track: Track) {
+        if (track != selectedTrack) {
+            selectedTrack = track
+            playbackSeconds = 0f
+            isPlaying = true
+        } else if (!mediaPlayer.isPlaying) {
+            mediaPlayer.start()
+            isPlaying = true
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color(0xFF101014)
@@ -139,22 +192,16 @@ fun OpenSoundApp() {
                     tracks = tracks,
                     selectedTrack = selectedTrack,
                     onTrackClick = { track ->
-                        selectedTrack = track
-                        if (!mediaPlayer.isPlaying) {
-                            mediaPlayer.start()
-                            isPlaying = true
-                        }
+                        selectTrackAndPlay(track)
                     }
                 )
 
                 "profile" -> ArtistProfileScreen(
                     tracks = tracks,
+                    showcaseMode = selectedTrack.isShowcase,
+                    playbackSeconds = playbackSeconds,
                     onTrackClick = { track ->
-                        selectedTrack = track
-                        if (!mediaPlayer.isPlaying) {
-                            mediaPlayer.start()
-                            isPlaying = true
-                        }
+                        selectTrackAndPlay(track)
                     },
                     onAddTrackClick = {
                         currentScreen = "studio"
@@ -174,11 +221,7 @@ fun OpenSoundApp() {
                 "search" -> SearchScreen(
                     tracks = tracks,
                     onTrackClick = { track ->
-                        selectedTrack = track
-                        if (!mediaPlayer.isPlaying) {
-                            mediaPlayer.start()
-                            isPlaying = true
-                        }
+                        selectTrackAndPlay(track)
                     }
                 )
 
@@ -186,18 +229,14 @@ fun OpenSoundApp() {
                     tracks = tracks,
                     selectedTrack = selectedTrack,
                     onTrackClick = { track ->
-                        selectedTrack = track
-                        if (!mediaPlayer.isPlaying) {
-                            mediaPlayer.start()
-                            isPlaying = true
-                        }
+                        selectTrackAndPlay(track)
                     }
                 )
 
                 "userProfile" -> UserProfileScreen(
                     tracks = tracks,
                     onTrackClick = { track ->
-                        selectedTrack = track
+                        selectTrackAndPlay(track)
                     }
                 )
             }
@@ -207,6 +246,7 @@ fun OpenSoundApp() {
                     atmosphereConfig = selectedAtmosphereConfig,
                     track = selectedTrack,
                     isPlaying = isPlaying,
+                    playbackSeconds = playbackSeconds,
                     onPlayPauseClick = {
                         togglePlay()
                     },

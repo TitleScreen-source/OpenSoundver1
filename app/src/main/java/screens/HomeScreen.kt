@@ -48,7 +48,7 @@ fun HomeScreen(
             .padding(top = 40.dp, bottom = 168.dp)
     ) {
         Text(
-            text = "OpenSound",
+            text = "AUDMORA",
             color = Color.White,
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold

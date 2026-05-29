@@ -42,7 +42,25 @@ fun MiniPlayer(
     onOpenFullPlayer: () -> Unit,
     modifier: Modifier = Modifier,
     atmosphereConfig: AtmosphereConfig,
+    playbackSeconds: Float = 0f,
 ) {
+    val playerModifier = modifier
+        .fillMaxWidth()
+        .navigationBarsPadding()
+        .padding(horizontal = 20.dp)
+        .padding(bottom = if (track.isShowcase) 96.dp else 120.dp)
+
+    if (track.isShowcase) {
+        ReelsShowcaseMiniPlayer(
+            track = track,
+            isPlaying = isPlaying,
+            playbackSeconds = playbackSeconds,
+            onPlayPauseClick = onPlayPauseClick,
+            onOpenFullPlayer = onOpenFullPlayer,
+            modifier = playerModifier
+        )
+        return
+    }
 
     AtmosphereMiniPlayerContent(
         track = track,
@@ -50,11 +68,6 @@ fun MiniPlayer(
         atmosphereConfig = atmosphereConfig,
         onPlayPauseClick = onPlayPauseClick,
         onOpenFullPlayer = onOpenFullPlayer,
-
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 120.dp)
+        modifier = playerModifier
     )
 }
