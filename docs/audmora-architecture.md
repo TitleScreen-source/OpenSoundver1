@@ -30,6 +30,9 @@ The showcase code is a reference layer, not disposable prototype code. Keep it s
   - `AudioPlaybackEngine` is the app-facing contract.
   - `AndroidMediaPlayerAudioEngine` is the current Android implementation.
   - This is a stepping stone toward a richer playback service, MediaSession, or Media3 layer.
+- `com.opensound.app.editor`
+  - Track Studio editor state and section vocabulary.
+  - This keeps editor concepts typed before the large screen is split by feature area.
 - `com.opensound.app.showcase`
   - Reference reels/profile visuals.
   - New visual showcase cases should live here or in a child package.
@@ -64,6 +67,19 @@ UI and app state should not call Android `MediaPlayer` directly. They should des
 
 Keeping the boundary small lets us replace the engine later without rewriting screens.
 
+## Editor boundary
+
+Track Studio is the future creative center of AudMora. It will likely grow into several domains:
+
+- timeline clips and layer timing
+- scene style and color presets
+- character layer controls
+- text cue controls
+- source assets
+- preview/playhead behavior
+
+The current screen is still large, but editor state now uses `TrackStudioEditorState` and `TrackStudioSection`. This matters because section strings such as `Scene` or `Timing` are not safe growth points: a typo compiles and quietly breaks UI flow. A typed section enum lets future refactors move each editor domain into separate files while preserving navigation between editor sections.
+
 ## Growth rules for future sessions
 
 - Keep `MainActivity` thin: setup, theme, root composition only.
@@ -81,4 +97,4 @@ Keeping the boundary small lets us replace the engine later without rewriting sc
 - Add seek/progress semantics to the playback boundary.
 - Decide when to migrate from `MediaPlayer` to Media3/ExoPlayer.
 - Add a repository contract for tracks, profiles, and atmosphere scenes.
-- Create a dedicated state holder for the editor draft instead of keeping all editor state inside `TrackStudioScreen`.
+- Move editor actions from `TrackStudioScreen` into a dedicated state holder/reducer.
