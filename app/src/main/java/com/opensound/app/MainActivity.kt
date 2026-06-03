@@ -175,10 +175,12 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
                     summary = uiState.userLibrarySummary,
                     tracks = uiState.libraryTracks,
                     selectedTrack = uiState.selectedTrack,
+                    selectedTrackIsSaved = uiState.selectedTrackIsSaved,
                     onTrackClick = playFrom(
                         source = PlaybackQueueSource.Library,
                         queueTracks = uiState.libraryTracks
-                    )
+                    ),
+                    onToggleSavedTrack = viewModel::toggleTrackSaved
                 )
 
                 AudMoraScreen.UserProfile -> UserProfileScreen(

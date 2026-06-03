@@ -11,6 +11,7 @@ import com.opensound.app.models.ProfileMetric
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.models.TrackId
+import com.opensound.app.models.UserLibrarySnapshot
 import com.opensound.app.models.UserLibrarySummary
 import com.opensound.app.models.UserProfile
 import com.opensound.app.navigation.AudMoraScreen
@@ -142,7 +143,7 @@ class AudMoraViewModelTest {
     }
 
     @Test
-    fun initialState_usesInjectedFeedRepositoryForScreenLists() {
+    fun initialState_usesInjectedFeedRepositoryForNonLibraryScreenLists() {
         val catalogTracks = listOf(
             testTrack("catalog-first"),
             testTrack("catalog-second"),
@@ -166,7 +167,6 @@ class AudMoraViewModelTest {
         assertEquals(catalogTracks, state.tracks)
         assertEquals(homeTracks, state.homeTracks)
         assertEquals(listOf(catalogTracks[0]), state.searchTracks)
-        assertEquals(catalogTracks.reversed(), state.libraryTracks)
         assertEquals(userProfileTracks, state.userProfileTracks)
         assertEquals(catalogTracks.first(), state.selectedTrack)
     }
@@ -186,20 +186,28 @@ class AudMoraViewModelTest {
         val librarySummary = UserLibrarySummary(
             description = "Injected library summary"
         )
+        val track = testTrack("track")
+        val userLibrary = UserLibrarySnapshot(
+            summary = librarySummary,
+            savedTrackIds = listOf(track.id)
+        )
         val viewModel = AudMoraViewModel(
-            trackRepository = FakeTrackRepository(testTrack("track")),
+            trackRepository = FakeTrackRepository(track),
             atmosphereRepository = FakeAtmosphereRepository(),
             profileRepository = FakeProfileRepository(
                 userProfile = userProfile,
                 artistProfile = artistProfile
             ),
-            userLibraryRepository = FakeUserLibraryRepository(librarySummary)
+            userLibraryRepository = FakeUserLibraryRepository(userLibrary)
         )
 
         val state = viewModel.uiState.value
         assertEquals(userProfile, state.currentUserProfile)
         assertEquals(artistProfile, state.featuredArtistProfile)
         assertEquals(librarySummary, state.userLibrarySummary)
+        assertEquals(userLibrary, state.userLibrary)
+        assertEquals(listOf(track), state.libraryTracks)
+        assertTrue(state.selectedTrackIsSaved)
     }
 
     @Test
@@ -259,6 +267,77 @@ class AudMoraViewModelTest {
         assertEquals(config, atmosphereRepository.atmosphereConfigFor(track.id))
         assertEquals(config, viewModel.uiState.value.selectedAtmosphereConfig)
         assertEquals(AudMoraScreen.ArtistProfile, viewModel.uiState.value.currentScreen)
+    }
+
+    @Test
+    fun saveTrackToLibrary_writesTrackIdAndRefreshesLibraryTracks() {
+        val firstTrack = testTrack("first-track")
+        val secondTrack = testTrack("second-track")
+        val userLibraryRepository = FakeUserLibraryRepository(
+            UserLibrarySnapshot(
+                summary = UserLibrarySummary("Test library"),
+                savedTrackIds = emptyList()
+            )
+        )
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(listOf(firstTrack, secondTrack)),
+            atmosphereRepository = FakeAtmosphereRepository(),
+            userLibraryRepository = userLibraryRepository
+        )
+
+        viewModel.saveTrackToLibrary(secondTrack)
+
+        val state = viewModel.uiState.value
+        assertEquals(listOf(secondTrack.id), state.savedTrackIds)
+        assertEquals(listOf(secondTrack), state.libraryTracks)
+        assertTrue(userLibraryRepository.isTrackSaved(secondTrack.id))
+    }
+
+    @Test
+    fun removeTrackFromLibrary_removesTrackIdAndRefreshesLibraryTracks() {
+        val firstTrack = testTrack("first-track")
+        val secondTrack = testTrack("second-track")
+        val userLibraryRepository = FakeUserLibraryRepository(
+            UserLibrarySnapshot(
+                summary = UserLibrarySummary("Test library"),
+                savedTrackIds = listOf(firstTrack.id, secondTrack.id)
+            )
+        )
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(listOf(firstTrack, secondTrack)),
+            atmosphereRepository = FakeAtmosphereRepository(),
+            userLibraryRepository = userLibraryRepository
+        )
+
+        viewModel.removeTrackFromLibrary(firstTrack)
+
+        val state = viewModel.uiState.value
+        assertEquals(listOf(secondTrack.id), state.savedTrackIds)
+        assertEquals(listOf(secondTrack), state.libraryTracks)
+        assertFalse(userLibraryRepository.isTrackSaved(firstTrack.id))
+    }
+
+    @Test
+    fun toggleTrackSaved_addsOrRemovesTrackId() {
+        val track = testTrack("toggle-track")
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = FakeAtmosphereRepository(),
+            userLibraryRepository = FakeUserLibraryRepository(
+                UserLibrarySnapshot(
+                    summary = UserLibrarySummary("Test library"),
+                    savedTrackIds = emptyList()
+                )
+            )
+        )
+
+        viewModel.toggleTrackSaved(track)
+        assertTrue(viewModel.uiState.value.selectedTrackIsSaved)
+        assertEquals(listOf(track), viewModel.uiState.value.libraryTracks)
+
+        viewModel.toggleTrackSaved(track)
+        assertFalse(viewModel.uiState.value.selectedTrackIsSaved)
+        assertTrue(viewModel.uiState.value.libraryTracks.isEmpty())
     }
 
     private class FakeTrackRepository(
@@ -329,10 +408,30 @@ class AudMoraViewModelTest {
     }
 
     private class FakeUserLibraryRepository(
-        private val summary: UserLibrarySummary
+        snapshot: UserLibrarySnapshot
     ) : UserLibraryRepository {
-        override fun librarySummary(): UserLibrarySummary {
-            return summary
+        private val summary = snapshot.summary
+        private val savedTrackIds = snapshot.savedTrackIds.toMutableList()
+
+        override fun librarySnapshot(): UserLibrarySnapshot {
+            return UserLibrarySnapshot(
+                summary = summary,
+                savedTrackIds = savedTrackIds.toList()
+            )
+        }
+
+        override fun saveTrack(trackId: TrackId) {
+            if (!isTrackSaved(trackId)) {
+                savedTrackIds.add(trackId)
+            }
+        }
+
+        override fun removeSavedTrack(trackId: TrackId) {
+            savedTrackIds.remove(trackId)
+        }
+
+        override fun isTrackSaved(trackId: TrackId): Boolean {
+            return savedTrackIds.contains(trackId)
         }
     }
 

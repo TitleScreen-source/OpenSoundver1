@@ -4,6 +4,7 @@ import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.ArtistProfile
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackId
+import com.opensound.app.models.UserLibrarySnapshot
 import com.opensound.app.models.UserLibrarySummary
 import com.opensound.app.models.UserProfile
 import com.opensound.app.navigation.AudMoraScreen
@@ -18,7 +19,7 @@ data class AudMoraUiState(
     val userProfileTracks: List<Track> = tracks,
     val currentUserProfile: UserProfile = UserProfile.Empty,
     val featuredArtistProfile: ArtistProfile = ArtistProfile.Empty,
-    val userLibrarySummary: UserLibrarySummary = UserLibrarySummary.Empty,
+    val userLibrary: UserLibrarySnapshot = UserLibrarySnapshot.Empty,
     val playbackQueue: PlaybackQueue,
     val currentScreen: AudMoraScreen = AudMoraScreen.ArtistProfile,
     val atmosphereConfigs: Map<TrackId, AtmosphereConfig> = emptyMap(),
@@ -32,6 +33,15 @@ data class AudMoraUiState(
 
     val selectedAtmosphereConfig: AtmosphereConfig
         get() = atmosphereConfigs[selectedTrack.id] ?: AtmosphereConfig()
+
+    val userLibrarySummary: UserLibrarySummary
+        get() = userLibrary.summary
+
+    val savedTrackIds: List<TrackId>
+        get() = userLibrary.savedTrackIds
+
+    val selectedTrackIsSaved: Boolean
+        get() = userLibrary.hasSavedTrack(selectedTrack.id)
 
     val canSkipToPreviousTrack: Boolean
         get() = playbackQueue.canSkipPrevious

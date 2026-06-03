@@ -15,6 +15,7 @@ import com.opensound.app.data.UserLibraryRepository
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackAudioSource
+import com.opensound.app.models.UserLibrarySnapshot
 import com.opensound.app.navigation.AudMoraScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -81,6 +82,26 @@ class AudMoraViewModel(
                 currentScreen = AudMoraScreen.ArtistProfile
             )
         }
+    }
+
+    fun saveTrackToLibrary(track: Track) {
+        userLibraryRepository.saveTrack(track.id)
+        refreshUserLibraryState()
+    }
+
+    fun removeTrackFromLibrary(track: Track) {
+        userLibraryRepository.removeSavedTrack(track.id)
+        refreshUserLibraryState()
+    }
+
+    fun toggleTrackSaved(track: Track) {
+        if (userLibraryRepository.isTrackSaved(track.id)) {
+            userLibraryRepository.removeSavedTrack(track.id)
+        } else {
+            userLibraryRepository.saveTrack(track.id)
+        }
+
+        refreshUserLibraryState()
     }
 
     fun selectTrackAndPlay(track: Track) {
@@ -192,6 +213,20 @@ class AudMoraViewModel(
         }
     }
 
+    private fun refreshUserLibraryState() {
+        val userLibrary = userLibraryRepository.librarySnapshot()
+
+        _uiState.update { state ->
+            state.copy(
+                userLibrary = userLibrary,
+                libraryTracks = libraryTracksFor(
+                    tracks = state.tracks,
+                    userLibrary = userLibrary
+                )
+            )
+        }
+    }
+
     companion object {
         fun factory(
             catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository()
@@ -237,20 +272,35 @@ class AudMoraViewModel(
             userLibraryRepository: UserLibraryRepository
         ): AudMoraUiState {
             val tracks = trackRepository.tracks()
+            val userLibrary = userLibraryRepository.librarySnapshot()
 
             return AudMoraUiState(
                 tracks = tracks,
                 homeTracks = trackFeedRepository.homeTracks(),
                 artistProfileTracks = trackFeedRepository.artistProfileTracks(),
                 searchTracks = trackFeedRepository.searchTracks(),
-                libraryTracks = trackFeedRepository.libraryTracks(),
+                libraryTracks = libraryTracksFor(
+                    tracks = tracks,
+                    userLibrary = userLibrary
+                ),
                 userProfileTracks = trackFeedRepository.userProfileTracks(),
                 currentUserProfile = profileRepository.currentUserProfile(),
                 featuredArtistProfile = profileRepository.featuredArtistProfile(),
-                userLibrarySummary = userLibraryRepository.librarySummary(),
+                userLibrary = userLibrary,
                 playbackQueue = PlaybackQueue(tracks = tracks),
                 atmosphereConfigs = atmosphereRepository.atmosphereConfigs()
             )
+        }
+
+        private fun libraryTracksFor(
+            tracks: List<Track>,
+            userLibrary: UserLibrarySnapshot
+        ): List<Track> {
+            val tracksById = tracks.associateBy { track -> track.id }
+
+            return userLibrary.savedTrackIds.mapNotNull { trackId ->
+                tracksById[trackId]
+            }
         }
     }
 }

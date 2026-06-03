@@ -40,3 +40,19 @@ data class UserLibrarySummary(
         val Empty = UserLibrarySummary(description = "")
     }
 }
+
+data class UserLibrarySnapshot(
+    val summary: UserLibrarySummary,
+    val savedTrackIds: List<TrackId>
+) {
+    fun hasSavedTrack(trackId: TrackId): Boolean {
+        return savedTrackIds.contains(trackId)
+    }
+
+    companion object {
+        val Empty = UserLibrarySnapshot(
+            summary = UserLibrarySummary.Empty,
+            savedTrackIds = emptyList()
+        )
+    }
+}

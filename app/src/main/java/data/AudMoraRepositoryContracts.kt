@@ -5,7 +5,7 @@ import com.opensound.app.models.ArtistProfile
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.models.TrackId
-import com.opensound.app.models.UserLibrarySummary
+import com.opensound.app.models.UserLibrarySnapshot
 import com.opensound.app.models.UserProfile
 
 interface TrackRepository {
@@ -33,7 +33,13 @@ interface ProfileRepository {
 }
 
 interface UserLibraryRepository {
-    fun librarySummary(): UserLibrarySummary
+    fun librarySnapshot(): UserLibrarySnapshot
+
+    fun saveTrack(trackId: TrackId)
+
+    fun removeSavedTrack(trackId: TrackId)
+
+    fun isTrackSaved(trackId: TrackId): Boolean
 }
 
 interface AtmosphereRepository {
