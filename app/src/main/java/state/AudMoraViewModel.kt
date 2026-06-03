@@ -104,6 +104,24 @@ class AudMoraViewModel(
         }
     }
 
+    fun skipToPreviousTrack() {
+        _uiState.update { state ->
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.PlaybackPreviousRequested
+            )
+        }
+    }
+
+    fun skipToNextTrack() {
+        _uiState.update { state ->
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.PlaybackNextRequested
+            )
+        }
+    }
+
     fun completePlayback() {
         _uiState.update { state ->
             reduceAudMoraPlaybackState(
@@ -163,8 +181,7 @@ class AudMoraViewModel(
             val tracks = trackRepository.tracks()
 
             return AudMoraUiState(
-                tracks = tracks,
-                selectedTrack = tracks.first(),
+                playbackQueue = PlaybackQueue(tracks = tracks),
                 atmosphereConfigs = atmosphereRepository.atmosphereConfigs()
             )
         }

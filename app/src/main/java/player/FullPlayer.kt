@@ -48,7 +48,11 @@ fun FullPlayer(
     isPlaying: Boolean,
     atmosphereConfig: AtmosphereConfig,
     playbackSeconds: Float,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
     onPlayPauseClick: () -> Unit,
+    onPreviousClick: () -> Unit,
+    onNextClick: () -> Unit,
     onSeek: (Float) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
@@ -198,13 +202,23 @@ fun FullPlayer(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 PlayerIconButton("SH", 46.dp, onClick = {})
-                PlayerIconButton("<<", 54.dp, onClick = {})
+                PlayerIconButton(
+                    label = "<<",
+                    size = 54.dp,
+                    enabled = canSkipPrevious,
+                    onClick = onPreviousClick
+                )
                 PlayButton(
                     isPlaying = isPlaying,
                     accentColor = accentColor,
                     onClick = onPlayPauseClick
                 )
-                PlayerIconButton(">>", 54.dp, onClick = {})
+                PlayerIconButton(
+                    label = ">>",
+                    size = 54.dp,
+                    enabled = canSkipNext,
+                    onClick = onNextClick
+                )
                 PlayerIconButton("RE", 46.dp, onClick = {})
             }
 
@@ -302,24 +316,25 @@ private fun PlayButton(
 private fun PlayerIconButton(
     label: String,
     size: Dp,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .size(size)
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.08f))
+            .background(Color.White.copy(alpha = if (enabled) 0.08f else 0.03f))
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.12f),
+                color = Color.White.copy(alpha = if (enabled) 0.12f else 0.05f),
                 shape = RoundedCornerShape(16.dp)
             )
-            .clickable { onClick() },
+            .clickable(enabled = enabled) { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
-            color = Color.White,
+            color = Color.White.copy(alpha = if (enabled) 1f else 0.35f),
             fontWeight = FontWeight.SemiBold
         )
     }

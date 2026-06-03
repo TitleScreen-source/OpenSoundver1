@@ -8,6 +8,8 @@ sealed class AudMoraPlaybackAction {
     data object PlaybackToggled : AudMoraPlaybackAction()
     data class PlaybackProgressChanged(val seconds: Float) : AudMoraPlaybackAction()
     data class PlaybackSeekRequested(val seconds: Float) : AudMoraPlaybackAction()
+    data object PlaybackPreviousRequested : AudMoraPlaybackAction()
+    data object PlaybackNextRequested : AudMoraPlaybackAction()
     data object PlaybackCompleted : AudMoraPlaybackAction()
 }
 
@@ -17,11 +19,13 @@ fun reduceAudMoraPlaybackState(
 ): AudMoraUiState {
     return when (action) {
         is AudMoraPlaybackAction.TrackSelectedForPlayback -> {
-            if (action.track == state.selectedTrack) {
+            val nextQueue = state.playbackQueue.select(action.track)
+
+            if (nextQueue.currentTrack.id == state.selectedTrack.id) {
                 state.copy(isPlaying = true)
             } else {
                 state.copy(
-                    selectedTrack = action.track,
+                    playbackQueue = nextQueue,
                     isPlaying = true,
                     playbackSeconds = 0f,
                     playbackSeekRequest = null
@@ -55,8 +59,33 @@ fun reduceAudMoraPlaybackState(
             )
         }
 
+        AudMoraPlaybackAction.PlaybackPreviousRequested -> moveToQueuedTrack(
+            state = state,
+            queue = state.playbackQueue.skipPrevious()
+        )
+
+        AudMoraPlaybackAction.PlaybackNextRequested -> moveToQueuedTrack(
+            state = state,
+            queue = state.playbackQueue.skipNext()
+        )
+
         AudMoraPlaybackAction.PlaybackCompleted -> state.copy(
             isPlaying = false,
+            playbackSeconds = 0f,
+            playbackSeekRequest = null
+        )
+    }
+}
+
+private fun moveToQueuedTrack(
+    state: AudMoraUiState,
+    queue: PlaybackQueue
+): AudMoraUiState {
+    return if (queue.currentTrack.id == state.selectedTrack.id) {
+        state
+    } else {
+        state.copy(
+            playbackQueue = queue,
             playbackSeconds = 0f,
             playbackSeekRequest = null
         )

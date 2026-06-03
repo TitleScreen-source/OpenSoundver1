@@ -79,6 +79,32 @@ class AudMoraViewModelTest {
     }
 
     @Test
+    fun skipToNextAndPreviousTrack_usePlaybackQueue() {
+        val firstTrack = testTrack("first-track")
+        val secondTrack = testTrack("second-track")
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(listOf(firstTrack, secondTrack)),
+            atmosphereRepository = FakeAtmosphereRepository()
+        )
+
+        viewModel.togglePlay()
+        viewModel.updatePlaybackSeconds(12f)
+        viewModel.skipToNextTrack()
+
+        val nextState = viewModel.uiState.value
+        assertEquals(secondTrack, nextState.selectedTrack)
+        assertTrue(nextState.isPlaying)
+        assertEquals(0f, nextState.playbackSeconds, 0.001f)
+
+        viewModel.skipToPreviousTrack()
+
+        val previousState = viewModel.uiState.value
+        assertEquals(firstTrack, previousState.selectedTrack)
+        assertTrue(previousState.isPlaying)
+        assertEquals(0f, previousState.playbackSeconds, 0.001f)
+    }
+
+    @Test
     fun initialState_usesInjectedRepositoryContracts() {
         val track = Track(
             id = TrackId("fake-track"),
@@ -126,10 +152,12 @@ class AudMoraViewModelTest {
     }
 
     private class FakeTrackRepository(
-        private val track: Track
+        private val queuedTracks: List<Track>
     ) : TrackRepository {
+        constructor(track: Track) : this(listOf(track))
+
         override fun tracks(): List<Track> {
-            return listOf(track)
+            return queuedTracks
         }
 
         override fun audioSourceFor(track: Track): TrackAudioSource {
@@ -138,6 +166,15 @@ class AudMoraViewModelTest {
                 is TrackAudioSource.LocalRawResource -> TrackAudioSource.LocalRawResource(source.resId * 100)
             }
         }
+    }
+
+    private fun testTrack(id: String): Track {
+        return Track(
+            id = TrackId(id),
+            title = id,
+            artist = "Repository Artist",
+            audioSource = TrackAudioSource.LocalRawResource(id.hashCode())
+        )
     }
 
     private class FakeAtmosphereRepository(

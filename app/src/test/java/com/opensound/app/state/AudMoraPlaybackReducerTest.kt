@@ -34,6 +34,7 @@ class AudMoraPlaybackReducerTest {
         val nextTrack = testTrack(id = "track-next")
         val state = testState(
             selectedTrack = currentTrack,
+            tracks = listOf(currentTrack, nextTrack),
             isPlaying = true,
             playbackSeconds = 42f
         )
@@ -46,6 +47,94 @@ class AudMoraPlaybackReducerTest {
         assertEquals(nextTrack, next.selectedTrack)
         assertTrue(next.isPlaying)
         assertEquals(0f, next.playbackSeconds, 0.001f)
+    }
+
+    @Test
+    fun playbackNextRequested_selectsNextTrackAndRewindsProgress() {
+        val currentTrack = testTrack(id = "track-current")
+        val nextTrack = testTrack(id = "track-next")
+        val state = testState(
+            selectedTrack = currentTrack,
+            tracks = listOf(currentTrack, nextTrack),
+            isPlaying = true,
+            playbackSeconds = 42f
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackNextRequested
+        )
+
+        assertEquals(nextTrack, next.selectedTrack)
+        assertTrue(next.isPlaying)
+        assertEquals(0f, next.playbackSeconds, 0.001f)
+        assertEquals(null, next.playbackSeekRequest)
+    }
+
+    @Test
+    fun playbackNextRequested_preservesPausedState() {
+        val currentTrack = testTrack(id = "track-current")
+        val nextTrack = testTrack(id = "track-next")
+        val state = testState(
+            selectedTrack = currentTrack,
+            tracks = listOf(currentTrack, nextTrack),
+            isPlaying = false,
+            playbackSeconds = 42f
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackNextRequested
+        )
+
+        assertEquals(nextTrack, next.selectedTrack)
+        assertFalse(next.isPlaying)
+        assertEquals(0f, next.playbackSeconds, 0.001f)
+    }
+
+    @Test
+    fun playbackPreviousRequested_selectsPreviousTrackAndRewindsProgress() {
+        val previousTrack = testTrack(id = "track-previous")
+        val currentTrack = testTrack(id = "track-current")
+        val stateWithSeek = reduceAudMoraPlaybackState(
+            state = testState(
+                selectedTrack = currentTrack,
+                tracks = listOf(previousTrack, currentTrack),
+                isPlaying = true,
+                playbackSeconds = 42f
+            ),
+            action = AudMoraPlaybackAction.PlaybackSeekRequested(18f)
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = stateWithSeek,
+            action = AudMoraPlaybackAction.PlaybackPreviousRequested
+        )
+
+        assertEquals(previousTrack, next.selectedTrack)
+        assertTrue(next.isPlaying)
+        assertEquals(0f, next.playbackSeconds, 0.001f)
+        assertEquals(null, next.playbackSeekRequest)
+    }
+
+    @Test
+    fun playbackNextRequested_keepsCurrentTrackAtQueueEnd() {
+        val track = testTrack(id = "track-current")
+        val state = testState(
+            selectedTrack = track,
+            tracks = listOf(track),
+            isPlaying = true,
+            playbackSeconds = 42f
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackNextRequested
+        )
+
+        assertEquals(track, next.selectedTrack)
+        assertTrue(next.isPlaying)
+        assertEquals(42f, next.playbackSeconds, 0.001f)
     }
 
     @Test
@@ -136,7 +225,10 @@ class AudMoraPlaybackReducerTest {
         val currentTrack = testTrack(id = "track-current")
         val nextTrack = testTrack(id = "track-next")
         val state = reduceAudMoraPlaybackState(
-            state = testState(selectedTrack = currentTrack),
+            state = testState(
+                selectedTrack = currentTrack,
+                tracks = listOf(currentTrack, nextTrack)
+            ),
             action = AudMoraPlaybackAction.PlaybackSeekRequested(32f)
         )
 
@@ -167,12 +259,17 @@ class AudMoraPlaybackReducerTest {
 
     private fun testState(
         selectedTrack: Track = testTrack(id = "track-current"),
+        tracks: List<Track> = listOf(selectedTrack),
         isPlaying: Boolean = false,
         playbackSeconds: Float = 0f
     ): AudMoraUiState {
+        val currentIndex = tracks.indexOfFirst { track -> track.id == selectedTrack.id }
+
         return AudMoraUiState(
-            tracks = listOf(selectedTrack),
-            selectedTrack = selectedTrack,
+            playbackQueue = PlaybackQueue(
+                tracks = tracks,
+                currentIndex = currentIndex.coerceAtLeast(0)
+            ),
             isPlaying = isPlaying,
             playbackSeconds = playbackSeconds
         )

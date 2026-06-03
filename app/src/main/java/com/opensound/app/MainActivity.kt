@@ -184,7 +184,11 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
                     isPlaying = uiState.isPlaying,
                     atmosphereConfig = uiState.selectedAtmosphereConfig,
                     playbackSeconds = uiState.playbackSeconds,
+                    canSkipPrevious = uiState.canSkipToPreviousTrack,
+                    canSkipNext = uiState.canSkipToNextTrack,
                     onPlayPauseClick = viewModel::togglePlay,
+                    onPreviousClick = viewModel::skipToPreviousTrack,
+                    onNextClick = viewModel::skipToNextTrack,
                     onSeek = viewModel::seekPlaybackTo,
                     onClose = viewModel::closeFullPlayer,
                     modifier = Modifier.fillMaxSize()
