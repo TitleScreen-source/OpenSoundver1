@@ -18,13 +18,11 @@ fun AudioPlaybackEffect(
     onPlaybackCompleted: () -> Unit
 ) {
     val context = LocalContext.current
-    val playbackEngine = remember(audioSource) {
-        when (audioSource) {
-            is TrackAudioSource.LocalRawResource -> AndroidMediaPlayerAudioEngine.create(
-                context = context,
-                audioResId = audioSource.resId
-            )
-        }
+    val playbackEngineFactory = remember(context) {
+        AndroidAudioPlaybackEngineFactory(context)
+    }
+    val playbackEngine = remember(audioSource, playbackEngineFactory) {
+        playbackEngineFactory.create(audioSource)
     }
     val latestPlaybackSecondsChanged by rememberUpdatedState(onPlaybackSecondsChanged)
     val latestPlaybackCompleted by rememberUpdatedState(onPlaybackCompleted)

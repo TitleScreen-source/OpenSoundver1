@@ -32,6 +32,7 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
 - `com.opensound.app.playback`
   - Playback interface and Compose side effects.
   - `AudioPlaybackEngine` is the app-facing contract.
+  - `AudioPlaybackEngineFactory` maps `TrackAudioSource` to the current engine implementation.
   - `AndroidMediaPlayerAudioEngine` is the current Android implementation.
   - This is a stepping stone toward a richer playback service, MediaSession, or Media3 layer.
 - `com.opensound.app.editor`
@@ -64,7 +65,7 @@ Atmosphere scenes are accessed through `AtmosphereRepository`. The current `InMe
 
 UI and app state should not call Android `MediaPlayer` directly. They should describe intent: selected audio source, desired play/pause state, progress updates, and completion.
 
-`AudioPlaybackEffect` translates that state into playback commands. The current engine is still `MediaPlayer`, but it is hidden behind `AudioPlaybackEngine`. This matters because real music apps usually outgrow the basic player quickly:
+`AudioPlaybackEffect` translates that state into playback commands. The current engine is still `MediaPlayer`, but it is hidden behind `AudioPlaybackEngine` and selected through `AudioPlaybackEngineFactory`. This matters because real music apps usually outgrow the basic player quickly:
 
 - background playback
 - lock-screen and notification controls
