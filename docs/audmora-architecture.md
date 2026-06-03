@@ -25,6 +25,7 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
   - This is the future place to hide API / database / cache sources behind repository APIs.
 - `com.opensound.app.state`
   - App-level UI state and `AudMoraViewModel`.
+  - Playback state reducer for track selection, play/pause, progress, and completion.
   - MainActivity should delegate state transitions here instead of owning feature state.
 - `com.opensound.app.navigation`
   - Typed screen enum and bottom navigation.
@@ -75,6 +76,8 @@ UI and app state should not call Android `MediaPlayer` directly. They should des
 - MediaSession / Media3 integration
 
 Keeping the boundary small lets us replace the engine later without rewriting screens.
+
+Playback UI state transitions live in `AudMoraPlaybackReducer`. This keeps app rules such as "switching tracks rewinds progress" and "completion stops playback" testable before AudMora grows a queue, repeat/shuffle, seek, downloads, or background playback.
 
 ## Editor boundary
 

@@ -70,33 +70,37 @@ class AudMoraViewModel(
 
     fun selectTrackAndPlay(track: Track) {
         _uiState.update { state ->
-            if (track == state.selectedTrack) {
-                state.copy(isPlaying = true)
-            } else {
-                state.copy(
-                    selectedTrack = track,
-                    isPlaying = true,
-                    playbackSeconds = 0f
-                )
-            }
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.TrackSelectedForPlayback(track)
+            )
         }
     }
 
     fun togglePlay() {
         _uiState.update { state ->
-            state.copy(isPlaying = !state.isPlaying)
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.PlaybackToggled
+            )
         }
     }
 
     fun updatePlaybackSeconds(seconds: Float) {
         _uiState.update { state ->
-            state.copy(playbackSeconds = seconds.coerceAtLeast(0f))
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.PlaybackProgressChanged(seconds)
+            )
         }
     }
 
     fun completePlayback() {
         _uiState.update { state ->
-            state.copy(isPlaying = false, playbackSeconds = 0f)
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.PlaybackCompleted
+            )
         }
     }
 
