@@ -11,5 +11,12 @@ interface TrackRepository {
 }
 
 interface AtmosphereRepository {
-    fun initialAtmosphereConfigs(): Map<TrackId, AtmosphereConfig>
+    fun atmosphereConfigs(): Map<TrackId, AtmosphereConfig>
+
+    fun atmosphereConfigFor(trackId: TrackId): AtmosphereConfig?
+
+    fun saveAtmosphereConfig(
+        trackId: TrackId,
+        config: AtmosphereConfig
+    )
 }

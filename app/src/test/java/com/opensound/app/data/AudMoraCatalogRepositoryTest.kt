@@ -43,11 +43,9 @@ class AudMoraCatalogRepositoryTest {
     }
 
     @Test
-    fun catalogRepository_implementsTrackAndAtmosphereContracts() {
+    fun catalogRepository_implementsTrackContract() {
         val trackRepository: TrackRepository = repository
-        val atmosphereRepository: AtmosphereRepository = repository
 
         assertTrue(trackRepository.tracks().isNotEmpty())
-        assertTrue(atmosphereRepository.initialAtmosphereConfigs().isNotEmpty())
     }
 }

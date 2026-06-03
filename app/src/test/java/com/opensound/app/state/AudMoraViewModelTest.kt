@@ -87,6 +87,28 @@ class AudMoraViewModelTest {
         assertEquals(700, viewModel.selectedAudioRes)
     }
 
+    @Test
+    fun saveAtmosphere_writesSelectedTrackConfigToRepository() {
+        val track = Track(
+            id = TrackId("save-target"),
+            title = "Save Target",
+            artist = "Repository Artist",
+            audioResId = 9
+        )
+        val atmosphereRepository = FakeAtmosphereRepository()
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = atmosphereRepository
+        )
+        val config = AtmosphereConfig(presetName = "Saved Through Repository")
+
+        viewModel.saveAtmosphere(config)
+
+        assertEquals(config, atmosphereRepository.atmosphereConfigFor(track.id))
+        assertEquals(config, viewModel.uiState.value.selectedAtmosphereConfig)
+        assertEquals(AudMoraScreen.ArtistProfile, viewModel.uiState.value.currentScreen)
+    }
+
     private class FakeTrackRepository(
         private val track: Track
     ) : TrackRepository {
@@ -100,11 +122,28 @@ class AudMoraViewModelTest {
     }
 
     private class FakeAtmosphereRepository(
-        private val trackId: TrackId,
-        private val config: AtmosphereConfig
+        initialConfigs: Map<TrackId, AtmosphereConfig> = emptyMap()
     ) : AtmosphereRepository {
-        override fun initialAtmosphereConfigs(): Map<TrackId, AtmosphereConfig> {
-            return mapOf(trackId to config)
+        constructor(
+            trackId: TrackId,
+            config: AtmosphereConfig
+        ) : this(mapOf(trackId to config))
+
+        private val configs = initialConfigs.toMutableMap()
+
+        override fun atmosphereConfigs(): Map<TrackId, AtmosphereConfig> {
+            return configs.toMap()
+        }
+
+        override fun atmosphereConfigFor(trackId: TrackId): AtmosphereConfig? {
+            return configs[trackId]
+        }
+
+        override fun saveAtmosphereConfig(
+            trackId: TrackId,
+            config: AtmosphereConfig
+        ) {
+            configs[trackId] = config
         }
     }
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.opensound.app.data.AtmosphereRepository
 import com.opensound.app.data.AudMoraCatalogRepository
+import com.opensound.app.data.InMemoryAtmosphereRepository
 import com.opensound.app.data.TrackRepository
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
@@ -15,13 +16,15 @@ import kotlinx.coroutines.flow.update
 
 class AudMoraViewModel(
     private val trackRepository: TrackRepository,
-    atmosphereRepository: AtmosphereRepository
+    private val atmosphereRepository: AtmosphereRepository
 ) : ViewModel() {
     constructor(
         catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository()
     ) : this(
         trackRepository = catalogRepository,
-        atmosphereRepository = catalogRepository
+        atmosphereRepository = InMemoryAtmosphereRepository(
+            initialConfigs = catalogRepository.initialAtmosphereConfigs()
+        )
     )
 
     private val _uiState = MutableStateFlow(
@@ -50,9 +53,15 @@ class AudMoraViewModel(
     }
 
     fun saveAtmosphere(config: AtmosphereConfig) {
+        val selectedTrackId = _uiState.value.selectedTrack.id
+        atmosphereRepository.saveAtmosphereConfig(
+            trackId = selectedTrackId,
+            config = config
+        )
+
         _uiState.update { state ->
             state.copy(
-                atmosphereConfigs = state.atmosphereConfigs + (state.selectedTrack.id to config),
+                atmosphereConfigs = atmosphereRepository.atmosphereConfigs(),
                 currentScreen = AudMoraScreen.ArtistProfile
             )
         }
@@ -108,7 +117,9 @@ class AudMoraViewModel(
         ): ViewModelProvider.Factory {
             return factory(
                 trackRepository = catalogRepository,
-                atmosphereRepository = catalogRepository
+                atmosphereRepository = InMemoryAtmosphereRepository(
+                    initialConfigs = catalogRepository.initialAtmosphereConfigs()
+                )
             )
         }
 
@@ -140,7 +151,7 @@ class AudMoraViewModel(
             return AudMoraUiState(
                 tracks = tracks,
                 selectedTrack = tracks.first(),
-                atmosphereConfigs = atmosphereRepository.initialAtmosphereConfigs()
+                atmosphereConfigs = atmosphereRepository.atmosphereConfigs()
             )
         }
     }

@@ -70,6 +70,8 @@ Atmospheres should be data-driven. A saved atmosphere should mostly contain:
 
 It should not duplicate heavy source media. If a visual scene needs large assets, store references and cache the actual files separately.
 
+In code, atmosphere saves should go through `AtmosphereRepository` by `TrackId`. The current prototype uses an in-memory implementation, but the repository boundary is intentionally the future handoff point for Room/DataStore/API/cache storage and for storage limits.
+
 ## Build-size guardrails
 
 As the app grows:

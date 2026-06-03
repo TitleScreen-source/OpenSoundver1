@@ -15,7 +15,7 @@ object AudMoraSeedTrackIds {
     val MidnightCity = TrackId("track-midnight-city")
 }
 
-class AudMoraCatalogRepository : TrackRepository, AtmosphereRepository {
+class AudMoraCatalogRepository : TrackRepository {
     override fun tracks(): List<Track> {
         return listOf(
             Track(
@@ -52,7 +52,7 @@ class AudMoraCatalogRepository : TrackRepository, AtmosphereRepository {
         )
     }
 
-    override fun initialAtmosphereConfigs(): Map<TrackId, AtmosphereConfig> {
+    fun initialAtmosphereConfigs(): Map<TrackId, AtmosphereConfig> {
         return mapOf(
             AudMoraSeedTrackIds.NightDrive to atmospherePresets[0],
             AudMoraSeedTrackIds.LostSignal to atmospherePresets[1],
