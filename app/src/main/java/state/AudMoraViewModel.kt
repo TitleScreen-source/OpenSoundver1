@@ -12,6 +12,9 @@ import com.opensound.app.data.SeedUserLibraryRepository
 import com.opensound.app.data.TrackFeedRepository
 import com.opensound.app.data.TrackRepository
 import com.opensound.app.data.UserLibraryRepository
+import com.opensound.app.editor.TrackStudioEditorAction
+import com.opensound.app.editor.TrackStudioEditorState
+import com.opensound.app.editor.TrackStudioSessionStateHolder
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackAudioSource
@@ -52,6 +55,9 @@ class AudMoraViewModel(
     )
     val uiState: StateFlow<AudMoraUiState> = _uiState.asStateFlow()
 
+    private val trackStudioStateHolder = TrackStudioSessionStateHolder()
+    val trackStudioEditorState: StateFlow<TrackStudioEditorState> = trackStudioStateHolder.state
+
     val selectedAudioSource: TrackAudioSource
         get() = trackRepository.audioSourceFor(_uiState.value.selectedTrack)
 
@@ -62,6 +68,11 @@ class AudMoraViewModel(
     }
 
     fun openTrackStudio() {
+        val state = _uiState.value
+        trackStudioStateHolder.startEditing(
+            trackId = state.selectedTrack.id,
+            initialConfig = state.selectedAtmosphereConfig
+        )
         selectScreen(AudMoraScreen.TrackStudio)
     }
 
@@ -82,6 +93,14 @@ class AudMoraViewModel(
                 currentScreen = AudMoraScreen.ArtistProfile
             )
         }
+    }
+
+    fun dispatchTrackStudioAction(action: TrackStudioEditorAction) {
+        trackStudioStateHolder.dispatch(action)
+    }
+
+    fun saveTrackStudioAtmosphere() {
+        saveAtmosphere(trackStudioStateHolder.saveConfig())
     }
 
     fun saveTrackToLibrary(track: Track) {

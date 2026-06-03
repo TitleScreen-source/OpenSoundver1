@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.opensound.app.editor.TrackStudioEditorAction
+import com.opensound.app.editor.TrackStudioEditorState
 import com.opensound.app.editor.TrackStudioSection
 import com.opensound.app.editor.timelineLayersFor
 import com.opensound.app.models.AtmosphereConfig
@@ -39,22 +40,18 @@ import com.opensound.app.player.AtmosphereMiniPlayerContent
 @Composable
 fun TrackStudioScreen(
     track: Track,
-    initialConfig: AtmosphereConfig,
-    onSave: (AtmosphereConfig) -> Unit,
+    editorState: TrackStudioEditorState,
+    onEditorAction: (TrackStudioEditorAction) -> Unit,
+    onSave: () -> Unit,
     onClose: () -> Unit
 ) {
-    val stateHolder = rememberTrackStudioStateHolder(
-        trackId = track.id,
-        initialConfig = initialConfig
-    )
-    val editorState = stateHolder.state
     val draftConfig = editorState.draftConfig
     val selectedSection = editorState.selectedSection
     val previewTimeSeconds = editorState.previewTimeSeconds
     val selectedLayerId = editorState.selectedLayerId
 
     fun dispatch(action: TrackStudioEditorAction) {
-        stateHolder.dispatch(action)
+        onEditorAction(action)
     }
 
     Column(
@@ -189,7 +186,7 @@ fun TrackStudioScreen(
             }
 
             Button(
-                onClick = { onSave(stateHolder.saveConfig()) },
+                onClick = onSave,
                 modifier = Modifier.weight(1.4f)
             ) {
                 Text("Save atmosphere")

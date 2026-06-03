@@ -93,6 +93,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
     val context = LocalContext.current
     val activity = context as? Activity
     val uiState by viewModel.uiState.collectAsState()
+    val trackStudioEditorState by viewModel.trackStudioEditorState.collectAsState()
 
     fun playFrom(
         source: PlaybackQueueSource,
@@ -169,8 +170,9 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
 
                 AudMoraScreen.TrackStudio -> TrackStudioScreen(
                     track = uiState.selectedTrack,
-                    initialConfig = uiState.selectedAtmosphereConfig,
-                    onSave = viewModel::saveAtmosphere,
+                    editorState = trackStudioEditorState,
+                    onEditorAction = viewModel::dispatchTrackStudioAction,
+                    onSave = viewModel::saveTrackStudioAtmosphere,
                     onClose = viewModel::closeTrackStudio
                 )
 

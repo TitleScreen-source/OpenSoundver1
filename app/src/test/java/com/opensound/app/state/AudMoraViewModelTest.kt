@@ -5,6 +5,7 @@ import com.opensound.app.data.ProfileRepository
 import com.opensound.app.data.TrackFeedRepository
 import com.opensound.app.data.TrackRepository
 import com.opensound.app.data.UserLibraryRepository
+import com.opensound.app.editor.TrackStudioEditorAction
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.ArtistProfile
 import com.opensound.app.models.ProfileMetric
@@ -266,6 +267,44 @@ class AudMoraViewModelTest {
 
         assertEquals(config, atmosphereRepository.atmosphereConfigFor(track.id))
         assertEquals(config, viewModel.uiState.value.selectedAtmosphereConfig)
+        assertEquals(AudMoraScreen.ArtistProfile, viewModel.uiState.value.currentScreen)
+    }
+
+    @Test
+    fun openTrackStudio_initializesEditorStateWithSelectedTrackAtmosphere() {
+        val track = testTrack("studio-track")
+        val config = AtmosphereConfig(presetName = "Studio Seed")
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = FakeAtmosphereRepository(track.id, config)
+        )
+
+        viewModel.openTrackStudio()
+
+        assertEquals(AudMoraScreen.TrackStudio, viewModel.uiState.value.currentScreen)
+        assertEquals(config, viewModel.trackStudioEditorState.value.draftConfig)
+    }
+
+    @Test
+    fun saveTrackStudioAtmosphere_persistsEditorDraftAndReturnsToProfile() {
+        val track = testTrack("studio-save-target")
+        val atmosphereRepository = FakeAtmosphereRepository()
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = atmosphereRepository
+        )
+        val draftConfig = AtmosphereConfig(presetName = "Studio Draft")
+
+        viewModel.openTrackStudio()
+        viewModel.dispatchTrackStudioAction(
+            TrackStudioEditorAction.DraftConfigChanged(draftConfig)
+        )
+        val expectedSavedConfig = viewModel.trackStudioEditorState.value.draftConfig
+
+        viewModel.saveTrackStudioAtmosphere()
+
+        assertEquals(expectedSavedConfig, atmosphereRepository.atmosphereConfigFor(track.id))
+        assertEquals(expectedSavedConfig, viewModel.uiState.value.selectedAtmosphereConfig)
         assertEquals(AudMoraScreen.ArtistProfile, viewModel.uiState.value.currentScreen)
     }
 

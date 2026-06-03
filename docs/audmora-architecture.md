@@ -27,11 +27,11 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
   - Local catalog seed data and resource selection.
   - Local seed feed composition over the current catalog.
   - Local seed profile and library summaries for the current prototype.
-  - In-memory atmosphere storage for the current prototype save flow.
   - This is the future place to hide API / database / cache sources behind repository APIs.
 - `com.opensound.app.state`
   - App-level UI state and `AudMoraViewModel`.
   - User profile, featured artist profile, and user library summary as state data, not hardcoded screen text.
+  - Track Studio session state owned by `AudMoraViewModel` and exposed as `trackStudioEditorState`.
   - `PlaybackQueue` for the current playback context, next/previous track movement, shuffle, and repeat mode.
   - Playback state reducer for track selection, play/pause, progress, queue movement, shuffle/repeat, seek, and completion.
   - MainActivity should delegate state transitions here instead of owning feature state.
@@ -104,7 +104,7 @@ Track Studio is the future creative center of AudMora. It will likely grow into 
 - source assets
 - preview/playhead behavior
 
-The current screen is still large, but editor state now uses `TrackStudioEditorState`, `TrackStudioSection`, and `TrackStudioEditorAction`. State transitions live in `TrackStudioEditorReducer`; Compose-observable editor state lives in `TrackStudioStateHolder`; timeline rules live in `TrackStudioTimelineOperations`; text/character edit rules live in `TrackStudioLayerOperations`; timeline UI lives in `TrackStudioTimelinePanel`; editor section UI lives in `TrackStudioEditorSections`; shared Track Studio controls live in `TrackStudioComponents`. This matters because section strings such as `Scene` or `Timing`, clip operations such as duplicate/delete/trim, layer rules such as text length or drag bounds, and timeline controls are separate reasons to change. Keeping product rules outside Compose makes them testable, and keeping large UI domains in their own files makes the editor easier to grow without losing the showcase-quality visual direction.
+The current screen is still large, but editor state now uses `TrackStudioEditorState`, `TrackStudioSection`, and `TrackStudioEditorAction`. State transitions live in `TrackStudioEditorReducer`; session state lives in `TrackStudioSessionStateHolder` and is owned by `AudMoraViewModel`; timeline rules live in `TrackStudioTimelineOperations`; text/character edit rules live in `TrackStudioLayerOperations`; timeline UI lives in `TrackStudioTimelinePanel`; editor section UI lives in `TrackStudioEditorSections`; shared Track Studio controls live in `TrackStudioComponents`. This matters because section strings such as `Scene` or `Timing`, clip operations such as duplicate/delete/trim, layer rules such as text length or drag bounds, and timeline controls are separate reasons to change. Keeping product rules outside Compose makes them testable, and keeping large UI domains in their own files makes the editor easier to grow without losing the showcase-quality visual direction.
 
 ## Growth rules for future sessions
 
@@ -124,4 +124,4 @@ The current screen is still large, but editor state now uses `TrackStudioEditorS
 - Extend `UserLibraryRepository` from saved track ids to liked tracks, playlists, folders, downloads, and sync conflict rules.
 - Promote `SharedPreferencesUserLibraryStorage` to DataStore or Room when library state starts carrying richer metadata than a small ordered id list.
 - Decide when to migrate from `MediaPlayer` to Media3/ExoPlayer.
-- Promote `TrackStudioStateHolder` to a ViewModel when Track Studio starts coordinating persistence, previews, and upload flows.
+- Add draft lifecycle rules for Track Studio: dirty state, discard confirmation, autosave, and per-track draft restore.
