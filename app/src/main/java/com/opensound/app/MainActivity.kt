@@ -4,7 +4,9 @@ import android.app.Activity
 import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -51,18 +53,27 @@ class MainActivity : ComponentActivity() {
             AudMoraViewModel.factory()
         )[AudMoraViewModel::class.java]
 
-        window.statusBarColor = AndroidColor.rgb(8, 7, 13)
-        window.navigationBarColor = AndroidColor.rgb(8, 7, 13)
-        WindowInsetsControllerCompat(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-            isAppearanceLightNavigationBars = false
-        }
+        configureAudMoraSystemBars()
 
         setContent {
             AudMoraTheme {
                 AudMoraApp(viewModel = viewModel)
             }
         }
+    }
+}
+
+private fun ComponentActivity.configureAudMoraSystemBars() {
+    val systemBarScrim = AndroidColor.rgb(8, 7, 13)
+
+    enableEdgeToEdge(
+        statusBarStyle = SystemBarStyle.dark(systemBarScrim),
+        navigationBarStyle = SystemBarStyle.dark(systemBarScrim)
+    )
+
+    WindowInsetsControllerCompat(window, window.decorView).apply {
+        isAppearanceLightStatusBars = false
+        isAppearanceLightNavigationBars = false
     }
 }
 
