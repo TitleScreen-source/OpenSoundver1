@@ -145,6 +145,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
                 )
 
                 AudMoraScreen.ArtistProfile -> ArtistProfileScreen(
+                    profile = uiState.featuredArtistProfile,
                     tracks = uiState.artistProfileTracks,
                     showcaseMode = uiState.selectedTrack.usesShowcaseVisuals,
                     playbackSeconds = uiState.playbackSeconds,
@@ -171,6 +172,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
                 )
 
                 AudMoraScreen.Library -> LibraryScreen(
+                    summary = uiState.userLibrarySummary,
                     tracks = uiState.libraryTracks,
                     selectedTrack = uiState.selectedTrack,
                     onTrackClick = playFrom(
@@ -180,6 +182,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
                 )
 
                 AudMoraScreen.UserProfile -> UserProfileScreen(
+                    profile = uiState.currentUserProfile,
                     tracks = uiState.userProfileTracks,
                     onTrackClick = playFrom(
                         source = PlaybackQueueSource.UserProfile,

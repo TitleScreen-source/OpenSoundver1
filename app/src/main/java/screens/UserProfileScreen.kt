@@ -22,10 +22,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.opensound.app.R
+import com.opensound.app.models.ProfileMetric
 import com.opensound.app.models.Track
+import com.opensound.app.models.UserProfile
 
 @Composable
 fun UserProfileScreen(
+    profile: UserProfile,
     tracks: List<Track>,
     onTrackClick: (Track) -> Unit
 ) {
@@ -49,20 +52,20 @@ fun UserProfileScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Open Listener",
+            text = profile.displayName,
             color = Color.White,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
 
-        Text("@audmora", color = Color(0xFFA9A1B6))
+        Text(profile.handle, color = Color(0xFFA9A1B6))
 
         Spacer(modifier = Modifier.height(22.dp))
 
         Row {
-            ProfileStat("23", "Плейлисты")
-            ProfileStat("156", "Подписки")
-            ProfileStat("2.4K", "Прослушивания")
+            profile.metrics.forEach { metric ->
+                ProfileStat(metric = metric)
+            }
         }
 
         Spacer(modifier = Modifier.height(28.dp))
@@ -86,14 +89,13 @@ fun UserProfileScreen(
 
 @Composable
 private fun ProfileStat(
-    value: String,
-    label: String
+    metric: ProfileMetric
 ) {
     Column(
         modifier = Modifier.padding(horizontal = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(value, color = Color.White, fontWeight = FontWeight.Bold)
-        Text(label, color = Color(0xFFA9A1B6))
+        Text(metric.value, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(metric.label, color = Color(0xFFA9A1B6))
     }
 }

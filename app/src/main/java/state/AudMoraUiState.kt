@@ -1,8 +1,11 @@
 package com.opensound.app.state
 
 import com.opensound.app.models.AtmosphereConfig
+import com.opensound.app.models.ArtistProfile
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackId
+import com.opensound.app.models.UserLibrarySummary
+import com.opensound.app.models.UserProfile
 import com.opensound.app.navigation.AudMoraScreen
 import com.opensound.app.playback.PlaybackSeekRequest
 
@@ -13,6 +16,9 @@ data class AudMoraUiState(
     val searchTracks: List<Track> = tracks,
     val libraryTracks: List<Track> = tracks,
     val userProfileTracks: List<Track> = tracks,
+    val currentUserProfile: UserProfile = UserProfile.Empty,
+    val featuredArtistProfile: ArtistProfile = ArtistProfile.Empty,
+    val userLibrarySummary: UserLibrarySummary = UserLibrarySummary.Empty,
     val playbackQueue: PlaybackQueue,
     val currentScreen: AudMoraScreen = AudMoraScreen.ArtistProfile,
     val atmosphereConfigs: Map<TrackId, AtmosphereConfig> = emptyMap(),

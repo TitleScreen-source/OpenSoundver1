@@ -5,9 +5,13 @@ import androidx.lifecycle.ViewModelProvider
 import com.opensound.app.data.AtmosphereRepository
 import com.opensound.app.data.AudMoraCatalogRepository
 import com.opensound.app.data.InMemoryAtmosphereRepository
+import com.opensound.app.data.ProfileRepository
 import com.opensound.app.data.SeedTrackFeedRepository
+import com.opensound.app.data.SeedProfileRepository
+import com.opensound.app.data.SeedUserLibraryRepository
 import com.opensound.app.data.TrackFeedRepository
 import com.opensound.app.data.TrackRepository
+import com.opensound.app.data.UserLibraryRepository
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackAudioSource
@@ -20,7 +24,9 @@ import kotlinx.coroutines.flow.update
 class AudMoraViewModel(
     private val trackRepository: TrackRepository,
     private val atmosphereRepository: AtmosphereRepository,
-    private val trackFeedRepository: TrackFeedRepository = SeedTrackFeedRepository(trackRepository)
+    private val trackFeedRepository: TrackFeedRepository = SeedTrackFeedRepository(trackRepository),
+    private val profileRepository: ProfileRepository = SeedProfileRepository(),
+    private val userLibraryRepository: UserLibraryRepository = SeedUserLibraryRepository()
 ) : ViewModel() {
     constructor(
         catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository()
@@ -29,14 +35,18 @@ class AudMoraViewModel(
         atmosphereRepository = InMemoryAtmosphereRepository(
             initialConfigs = catalogRepository.initialAtmosphereConfigs()
         ),
-        trackFeedRepository = SeedTrackFeedRepository(catalogRepository)
+        trackFeedRepository = SeedTrackFeedRepository(catalogRepository),
+        profileRepository = SeedProfileRepository(),
+        userLibraryRepository = SeedUserLibraryRepository()
     )
 
     private val _uiState = MutableStateFlow(
         initialState(
             trackRepository = trackRepository,
             atmosphereRepository = atmosphereRepository,
-            trackFeedRepository = trackFeedRepository
+            trackFeedRepository = trackFeedRepository,
+            profileRepository = profileRepository,
+            userLibraryRepository = userLibraryRepository
         )
     )
     val uiState: StateFlow<AudMoraUiState> = _uiState.asStateFlow()
@@ -197,7 +207,9 @@ class AudMoraViewModel(
         fun factory(
             trackRepository: TrackRepository,
             atmosphereRepository: AtmosphereRepository,
-            trackFeedRepository: TrackFeedRepository = SeedTrackFeedRepository(trackRepository)
+            trackFeedRepository: TrackFeedRepository = SeedTrackFeedRepository(trackRepository),
+            profileRepository: ProfileRepository = SeedProfileRepository(),
+            userLibraryRepository: UserLibraryRepository = SeedUserLibraryRepository()
         ): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -206,7 +218,9 @@ class AudMoraViewModel(
                         return AudMoraViewModel(
                             trackRepository = trackRepository,
                             atmosphereRepository = atmosphereRepository,
-                            trackFeedRepository = trackFeedRepository
+                            trackFeedRepository = trackFeedRepository,
+                            profileRepository = profileRepository,
+                            userLibraryRepository = userLibraryRepository
                         ) as T
                     }
 
@@ -218,7 +232,9 @@ class AudMoraViewModel(
         private fun initialState(
             trackRepository: TrackRepository,
             atmosphereRepository: AtmosphereRepository,
-            trackFeedRepository: TrackFeedRepository
+            trackFeedRepository: TrackFeedRepository,
+            profileRepository: ProfileRepository,
+            userLibraryRepository: UserLibraryRepository
         ): AudMoraUiState {
             val tracks = trackRepository.tracks()
 
@@ -229,6 +245,9 @@ class AudMoraViewModel(
                 searchTracks = trackFeedRepository.searchTracks(),
                 libraryTracks = trackFeedRepository.libraryTracks(),
                 userProfileTracks = trackFeedRepository.userProfileTracks(),
+                currentUserProfile = profileRepository.currentUserProfile(),
+                featuredArtistProfile = profileRepository.featuredArtistProfile(),
+                userLibrarySummary = userLibraryRepository.librarySummary(),
                 playbackQueue = PlaybackQueue(tracks = tracks),
                 atmosphereConfigs = atmosphereRepository.atmosphereConfigs()
             )

@@ -14,9 +14,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.opensound.app.models.Track
+import com.opensound.app.models.UserLibrarySummary
 
 @Composable
 fun LibraryScreen(
+    summary: UserLibrarySummary,
     tracks: List<Track>,
     selectedTrack: Track,
     onTrackClick: (Track) -> Unit
@@ -38,7 +40,7 @@ fun LibraryScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Треки, плейлисты и атмосферы",
+            text = summary.description,
             color = Color(0xFFC8BED8),
             style = MaterialTheme.typography.bodyLarge
         )

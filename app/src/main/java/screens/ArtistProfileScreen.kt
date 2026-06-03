@@ -35,11 +35,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.opensound.app.R
+import com.opensound.app.models.ArtistProfile
 import com.opensound.app.models.Track
 import com.opensound.app.showcase.AudmoraShowcaseProfileScreen
 
 @Composable
 fun ArtistProfileScreen(
+    profile: ArtistProfile,
     tracks: List<Track>,
     onTrackClick: (Track) -> Unit,
     onAddTrackClick: () -> Unit,
@@ -103,14 +105,14 @@ fun ArtistProfileScreen(
                         .zIndex(3f)
                 ) {
                     Text(
-                        text = "Synth Waves",
+                        text = profile.displayName,
                         color = Color.White,
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "Electronic • Ambient • Indie",
+                        text = profile.genreLine,
                         color = Color(0xFFC8BED8)
                     )
                 }
@@ -120,7 +122,7 @@ fun ArtistProfileScreen(
         item {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    text = "Автор создаёт атмосферную электронную музыку с визуальными сценами для каждого релиза.",
+                    text = profile.bio,
                     color = Color(0xFFC8BED8),
                     style = MaterialTheme.typography.bodyLarge
                 )

@@ -1,12 +1,18 @@
 package com.opensound.app.state
 
 import com.opensound.app.data.AtmosphereRepository
+import com.opensound.app.data.ProfileRepository
 import com.opensound.app.data.TrackFeedRepository
 import com.opensound.app.data.TrackRepository
+import com.opensound.app.data.UserLibraryRepository
 import com.opensound.app.models.AtmosphereConfig
+import com.opensound.app.models.ArtistProfile
+import com.opensound.app.models.ProfileMetric
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.models.TrackId
+import com.opensound.app.models.UserLibrarySummary
+import com.opensound.app.models.UserProfile
 import com.opensound.app.navigation.AudMoraScreen
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -166,6 +172,37 @@ class AudMoraViewModelTest {
     }
 
     @Test
+    fun initialState_usesInjectedProfileAndLibraryRepositories() {
+        val userProfile = UserProfile(
+            displayName = "Injected Listener",
+            handle = "@injected",
+            metrics = listOf(ProfileMetric(value = "7", label = "Playlists"))
+        )
+        val artistProfile = ArtistProfile(
+            displayName = "Injected Artist",
+            genreLine = "Dream / Noise",
+            bio = "Injected artist bio"
+        )
+        val librarySummary = UserLibrarySummary(
+            description = "Injected library summary"
+        )
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(testTrack("track")),
+            atmosphereRepository = FakeAtmosphereRepository(),
+            profileRepository = FakeProfileRepository(
+                userProfile = userProfile,
+                artistProfile = artistProfile
+            ),
+            userLibraryRepository = FakeUserLibraryRepository(librarySummary)
+        )
+
+        val state = viewModel.uiState.value
+        assertEquals(userProfile, state.currentUserProfile)
+        assertEquals(artistProfile, state.featuredArtistProfile)
+        assertEquals(librarySummary, state.userLibrarySummary)
+    }
+
+    @Test
     fun toggleShuffleAndCycleRepeatMode_updatePlaybackQueueModes() {
         val viewModel = AudMoraViewModel()
 
@@ -275,6 +312,27 @@ class AudMoraViewModelTest {
 
         override fun userProfileTracks(): List<Track> {
             return userProfileTracks
+        }
+    }
+
+    private class FakeProfileRepository(
+        private val userProfile: UserProfile,
+        private val artistProfile: ArtistProfile
+    ) : ProfileRepository {
+        override fun currentUserProfile(): UserProfile {
+            return userProfile
+        }
+
+        override fun featuredArtistProfile(): ArtistProfile {
+            return artistProfile
+        }
+    }
+
+    private class FakeUserLibraryRepository(
+        private val summary: UserLibrarySummary
+    ) : UserLibraryRepository {
+        override fun librarySummary(): UserLibrarySummary {
+            return summary
         }
     }
 
