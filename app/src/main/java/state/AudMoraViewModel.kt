@@ -69,10 +69,26 @@ class AudMoraViewModel(
     }
 
     fun selectTrackAndPlay(track: Track) {
+        playTrackFromQueueContext(
+            track = track,
+            queueTracks = _uiState.value.tracks,
+            queueSource = PlaybackQueueSource.Catalog
+        )
+    }
+
+    fun playTrackFromQueueContext(
+        track: Track,
+        queueTracks: List<Track>,
+        queueSource: PlaybackQueueSource
+    ) {
         _uiState.update { state ->
             reduceAudMoraPlaybackState(
                 state = state,
-                action = AudMoraPlaybackAction.TrackSelectedForPlayback(track)
+                action = AudMoraPlaybackAction.TrackSelectedForPlayback(
+                    track = track,
+                    queueTracks = queueTracks,
+                    queueSource = queueSource
+                )
             )
         }
     }
@@ -199,6 +215,7 @@ class AudMoraViewModel(
             val tracks = trackRepository.tracks()
 
             return AudMoraUiState(
+                tracks = tracks,
                 playbackQueue = PlaybackQueue(tracks = tracks),
                 atmosphereConfigs = atmosphereRepository.atmosphereConfigs()
             )

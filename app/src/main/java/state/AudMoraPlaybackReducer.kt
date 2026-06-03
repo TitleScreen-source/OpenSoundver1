@@ -4,7 +4,11 @@ import com.opensound.app.models.Track
 import com.opensound.app.playback.PlaybackSeekRequest
 
 sealed class AudMoraPlaybackAction {
-    data class TrackSelectedForPlayback(val track: Track) : AudMoraPlaybackAction()
+    data class TrackSelectedForPlayback(
+        val track: Track,
+        val queueTracks: List<Track> = listOf(track),
+        val queueSource: PlaybackQueueSource = PlaybackQueueSource.Catalog
+    ) : AudMoraPlaybackAction()
     data object PlaybackToggled : AudMoraPlaybackAction()
     data class PlaybackProgressChanged(val seconds: Float) : AudMoraPlaybackAction()
     data class PlaybackSeekRequested(val seconds: Float) : AudMoraPlaybackAction()
@@ -21,10 +25,17 @@ fun reduceAudMoraPlaybackState(
 ): AudMoraUiState {
     return when (action) {
         is AudMoraPlaybackAction.TrackSelectedForPlayback -> {
-            val nextQueue = state.playbackQueue.select(action.track)
+            val nextQueue = state.playbackQueue.replaceContext(
+                track = action.track,
+                queueTracks = action.queueTracks,
+                source = action.queueSource
+            )
 
             if (nextQueue.currentTrack.id == state.selectedTrack.id) {
-                state.copy(isPlaying = true)
+                state.copy(
+                    playbackQueue = nextQueue,
+                    isPlaying = true
+                )
             } else {
                 state.copy(
                     playbackQueue = nextQueue,

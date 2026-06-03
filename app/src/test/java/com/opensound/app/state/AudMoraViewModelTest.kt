@@ -109,6 +109,32 @@ class AudMoraViewModelTest {
     }
 
     @Test
+    fun playTrackFromQueueContext_keepsCatalogTracksAndUsesContextQueue() {
+        val firstTrack = testTrack("first-track")
+        val secondTrack = testTrack("second-track")
+        val thirdTrack = testTrack("third-track")
+        val catalogTracks = listOf(firstTrack, secondTrack, thirdTrack)
+        val userProfileTracks = listOf(secondTrack, thirdTrack)
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(catalogTracks),
+            atmosphereRepository = FakeAtmosphereRepository()
+        )
+
+        viewModel.playTrackFromQueueContext(
+            track = thirdTrack,
+            queueTracks = userProfileTracks,
+            queueSource = PlaybackQueueSource.UserProfile
+        )
+
+        val state = viewModel.uiState.value
+        assertEquals(catalogTracks, state.tracks)
+        assertEquals(userProfileTracks, state.playbackQueue.tracks)
+        assertEquals(PlaybackQueueSource.UserProfile, state.playbackQueueSource)
+        assertEquals(thirdTrack, state.selectedTrack)
+        assertTrue(state.isPlaying)
+    }
+
+    @Test
     fun toggleShuffleAndCycleRepeatMode_updatePlaybackQueueModes() {
         val viewModel = AudMoraViewModel()
 

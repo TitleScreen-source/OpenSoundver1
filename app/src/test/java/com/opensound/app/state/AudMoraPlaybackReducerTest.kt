@@ -50,6 +50,63 @@ class AudMoraPlaybackReducerTest {
     }
 
     @Test
+    fun trackSelectedForPlayback_replacesQueueContextWithoutChangingCatalogTracks() {
+        val firstTrack = testTrack(id = "track-first")
+        val secondTrack = testTrack(id = "track-second")
+        val thirdTrack = testTrack(id = "track-third")
+        val catalogTracks = listOf(firstTrack, secondTrack, thirdTrack)
+        val searchTracks = listOf(secondTrack, thirdTrack)
+        val state = testState(
+            selectedTrack = firstTrack,
+            tracks = catalogTracks,
+            isPlaying = true,
+            playbackSeconds = 42f
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.TrackSelectedForPlayback(
+                track = thirdTrack,
+                queueTracks = searchTracks,
+                queueSource = PlaybackQueueSource.Search
+            )
+        )
+
+        assertEquals(catalogTracks, next.tracks)
+        assertEquals(searchTracks, next.playbackQueue.tracks)
+        assertEquals(PlaybackQueueSource.Search, next.playbackQueueSource)
+        assertEquals(thirdTrack, next.selectedTrack)
+        assertEquals(0f, next.playbackSeconds, 0.001f)
+    }
+
+    @Test
+    fun trackSelectedForPlayback_updatesQueueContextForSameTrackWithoutRewinding() {
+        val currentTrack = testTrack(id = "track-current")
+        val nextTrack = testTrack(id = "track-next")
+        val state = testState(
+            selectedTrack = currentTrack,
+            tracks = listOf(currentTrack, nextTrack),
+            isPlaying = false,
+            playbackSeconds = 42f
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.TrackSelectedForPlayback(
+                track = currentTrack,
+                queueTracks = listOf(currentTrack),
+                queueSource = PlaybackQueueSource.UserProfile
+            )
+        )
+
+        assertEquals(listOf(currentTrack, nextTrack), next.tracks)
+        assertEquals(listOf(currentTrack), next.playbackQueue.tracks)
+        assertEquals(PlaybackQueueSource.UserProfile, next.playbackQueueSource)
+        assertTrue(next.isPlaying)
+        assertEquals(42f, next.playbackSeconds, 0.001f)
+    }
+
+    @Test
     fun playbackNextRequested_selectsNextTrackAndRewindsProgress() {
         val currentTrack = testTrack(id = "track-current")
         val nextTrack = testTrack(id = "track-next")
@@ -399,6 +456,7 @@ class AudMoraPlaybackReducerTest {
         )
 
         return AudMoraUiState(
+            tracks = tracks,
             playbackQueue = if (shuffleEnabled) queue.toggleShuffle() else queue,
             isPlaying = isPlaying,
             playbackSeconds = playbackSeconds

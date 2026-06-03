@@ -104,6 +104,62 @@ class PlaybackQueueTest {
         assertEquals(PlaybackRepeatMode.Off, repeatOff.repeatMode)
     }
 
+    @Test
+    fun replaceContext_keepsSelectedTrackAndUpdatesSource() {
+        val first = testTrack("first")
+        val second = testTrack("second")
+        val third = testTrack("third")
+        val queue = PlaybackQueue(tracks = listOf(first, second, third))
+
+        val next = queue.replaceContext(
+            track = third,
+            queueTracks = listOf(second, third),
+            source = PlaybackQueueSource.Search
+        )
+
+        assertEquals(listOf(second, third), next.tracks)
+        assertEquals(third, next.currentTrack)
+        assertEquals(PlaybackQueueSource.Search, next.source)
+    }
+
+    @Test
+    fun replaceContext_preservesPlaybackModes() {
+        val first = testTrack("first")
+        val second = testTrack("second")
+        val third = testTrack("third")
+        val queue = PlaybackQueue(
+            tracks = listOf(first, second, third),
+            repeatMode = PlaybackRepeatMode.All
+        ).toggleShuffle()
+
+        val next = queue.replaceContext(
+            track = second,
+            queueTracks = listOf(second, third),
+            source = PlaybackQueueSource.UserProfile
+        )
+
+        assertTrue(next.shuffleEnabled)
+        assertEquals(PlaybackRepeatMode.All, next.repeatMode)
+        assertEquals(second, next.currentTrack)
+        assertEquals(PlaybackQueueSource.UserProfile, next.source)
+    }
+
+    @Test
+    fun replaceContext_includesSelectedTrackWhenContextDoesNotContainIt() {
+        val selected = testTrack("selected")
+        val other = testTrack("other")
+        val queue = PlaybackQueue(tracks = listOf(selected))
+
+        val next = queue.replaceContext(
+            track = selected,
+            queueTracks = listOf(other),
+            source = PlaybackQueueSource.Home
+        )
+
+        assertEquals(listOf(selected, other), next.tracks)
+        assertEquals(selected, next.currentTrack)
+    }
+
     private fun testTrack(id: String): Track {
         return Track(
             id = TrackId(id),

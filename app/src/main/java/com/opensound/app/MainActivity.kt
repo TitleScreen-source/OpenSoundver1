@@ -27,6 +27,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import com.opensound.app.navigation.AudMoraScreen
 import com.opensound.app.navigation.BottomNavigation
+import com.opensound.app.models.Track
 import com.opensound.app.playback.AudioPlaybackEffect
 import com.opensound.app.player.FullPlayer
 import com.opensound.app.player.MiniPlayer
@@ -37,6 +38,7 @@ import com.opensound.app.screens.SearchScreen
 import com.opensound.app.screens.TrackStudioScreen
 import com.opensound.app.screens.UserProfileScreen
 import com.opensound.app.state.AudMoraViewModel
+import com.opensound.app.state.PlaybackQueueSource
 import com.opensound.app.ui.theme.AudMoraTheme
 
 class MainActivity : ComponentActivity() {
@@ -69,6 +71,20 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
     val context = LocalContext.current
     val activity = context as? Activity
     val uiState by viewModel.uiState.collectAsState()
+    val userProfileTracks = uiState.tracks.take(3)
+
+    fun playFrom(
+        source: PlaybackQueueSource,
+        queueTracks: List<Track> = uiState.tracks
+    ): (Track) -> Unit {
+        return { track ->
+            viewModel.playTrackFromQueueContext(
+                track = track,
+                queueTracks = queueTracks,
+                queueSource = source
+            )
+        }
+    }
 
     AudioPlaybackEffect(
         audioSource = viewModel.selectedAudioSource,
@@ -112,14 +128,14 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
                 AudMoraScreen.Home -> HomeScreen(
                     tracks = uiState.tracks,
                     selectedTrack = uiState.selectedTrack,
-                    onTrackClick = viewModel::selectTrackAndPlay
+                    onTrackClick = playFrom(PlaybackQueueSource.Home)
                 )
 
                 AudMoraScreen.ArtistProfile -> ArtistProfileScreen(
                     tracks = uiState.tracks,
                     showcaseMode = uiState.selectedTrack.usesShowcaseVisuals,
                     playbackSeconds = uiState.playbackSeconds,
-                    onTrackClick = viewModel::selectTrackAndPlay,
+                    onTrackClick = playFrom(PlaybackQueueSource.ArtistProfile),
                     onAddTrackClick = viewModel::openTrackStudio
                 )
 
@@ -132,18 +148,21 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
 
                 AudMoraScreen.Search -> SearchScreen(
                     tracks = uiState.tracks,
-                    onTrackClick = viewModel::selectTrackAndPlay
+                    onTrackClick = playFrom(PlaybackQueueSource.Search)
                 )
 
                 AudMoraScreen.Library -> LibraryScreen(
                     tracks = uiState.tracks,
                     selectedTrack = uiState.selectedTrack,
-                    onTrackClick = viewModel::selectTrackAndPlay
+                    onTrackClick = playFrom(PlaybackQueueSource.Library)
                 )
 
                 AudMoraScreen.UserProfile -> UserProfileScreen(
                     tracks = uiState.tracks,
-                    onTrackClick = viewModel::selectTrackAndPlay
+                    onTrackClick = playFrom(
+                        source = PlaybackQueueSource.UserProfile,
+                        queueTracks = userProfileTracks
+                    )
                 )
             }
 

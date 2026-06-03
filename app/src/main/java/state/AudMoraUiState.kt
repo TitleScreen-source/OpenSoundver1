@@ -7,6 +7,7 @@ import com.opensound.app.navigation.AudMoraScreen
 import com.opensound.app.playback.PlaybackSeekRequest
 
 data class AudMoraUiState(
+    val tracks: List<Track>,
     val playbackQueue: PlaybackQueue,
     val currentScreen: AudMoraScreen = AudMoraScreen.ArtistProfile,
     val atmosphereConfigs: Map<TrackId, AtmosphereConfig> = emptyMap(),
@@ -15,9 +16,6 @@ data class AudMoraUiState(
     val playbackSeekRequest: PlaybackSeekRequest? = null,
     val isFullPlayerOpen: Boolean = false
 ) {
-    val tracks: List<Track>
-        get() = playbackQueue.tracks
-
     val selectedTrack: Track
         get() = playbackQueue.currentTrack
 
@@ -35,6 +33,9 @@ data class AudMoraUiState(
 
     val repeatMode: PlaybackRepeatMode
         get() = playbackQueue.repeatMode
+
+    val playbackQueueSource: PlaybackQueueSource
+        get() = playbackQueue.source
 
     val showPersistentPlayer: Boolean
         get() = currentScreen != AudMoraScreen.TrackStudio

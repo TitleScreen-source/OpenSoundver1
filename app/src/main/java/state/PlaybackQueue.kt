@@ -2,6 +2,15 @@ package com.opensound.app.state
 
 import com.opensound.app.models.Track
 
+enum class PlaybackQueueSource {
+    Catalog,
+    Home,
+    ArtistProfile,
+    Search,
+    Library,
+    UserProfile
+}
+
 enum class PlaybackRepeatMode {
     Off,
     All,
@@ -21,6 +30,7 @@ data class PlaybackQueue(
     val currentIndex: Int = 0,
     val shuffleEnabled: Boolean = false,
     val repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.Off,
+    val source: PlaybackQueueSource = PlaybackQueueSource.Catalog,
     private val shuffleOrder: List<Int> = tracks.indices.toList()
 ) {
     init {
@@ -56,6 +66,30 @@ data class PlaybackQueue(
             this
         } else {
             copy(currentIndex = nextIndex)
+        }
+    }
+
+    fun replaceContext(
+        track: Track,
+        queueTracks: List<Track>,
+        source: PlaybackQueueSource
+    ): PlaybackQueue {
+        val normalizedTracks = normalizeQueueTracks(
+            queueTracks = queueTracks,
+            selectedTrack = track
+        )
+        val nextIndex = normalizedTracks.indexOfFirst { queuedTrack -> queuedTrack.id == track.id }
+        val nextQueue = PlaybackQueue(
+            tracks = normalizedTracks,
+            currentIndex = nextIndex.coerceAtLeast(0),
+            repeatMode = repeatMode,
+            source = source
+        )
+
+        return if (shuffleEnabled) {
+            nextQueue.toggleShuffle()
+        } else {
+            nextQueue
         }
     }
 
@@ -103,5 +137,18 @@ data class PlaybackQueue(
             .sortedByDescending { index -> tracks[index].id.value }
 
         return listOf(currentIndex) + remainingIndices
+    }
+
+    private fun normalizeQueueTracks(
+        queueTracks: List<Track>,
+        selectedTrack: Track
+    ): List<Track> {
+        val distinctTracks = queueTracks.distinctBy { track -> track.id }
+
+        return if (distinctTracks.any { track -> track.id == selectedTrack.id }) {
+            distinctTracks
+        } else {
+            listOf(selectedTrack) + distinctTracks
+        }
     }
 }
