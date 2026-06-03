@@ -22,6 +22,7 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
   - Repository contracts for tracks and atmosphere scenes.
   - Feed contracts for Home, Search, Library, Artist Profile, and User Profile track lists.
   - Profile and user library contracts for account-facing display data.
+  - User library storage adapters: in-memory for seed/tests, SharedPreferences for current local persistence.
   - Local catalog seed data and resource selection.
   - Local seed feed composition over the current catalog.
   - Local seed profile and library summaries for the current prototype.
@@ -85,7 +86,7 @@ Keeping the boundary small lets us replace the engine later without rewriting sc
 
 `AudMoraUiState.tracks` is the app/catalog list. Screen lists such as `homeTracks`, `searchTracks`, `artistProfileTracks`, and `userProfileTracks` come from `TrackFeedRepository`. `libraryTracks` is derived from the current user's saved `TrackId` values in `UserLibraryRepository`, resolved against the known catalog. `PlaybackQueue.tracks` is the current playback context. Keep all four separate: catalog is the known universe, feeds are what discovery/profile screens show, library is what the user saved, and queue is what next/previous follows after playback starts.
 
-`ProfileRepository` owns profile-facing data such as the current user's public identity, metrics, and the featured artist profile. `UserLibraryRepository` owns user library display data and saved track actions. Today both are seed repositories, but screens already consume `UserProfile`, `ArtistProfile`, and `UserLibrarySnapshot` from state. This matters because real profile and library data will eventually come from account storage, API responses, local cache, likes, playlists, uploads, and saved atmosphere scenes. Compose screens should not know which source produced that data.
+`ProfileRepository` owns profile-facing data such as the current user's public identity, metrics, and the featured artist profile. `UserLibraryRepository` owns user library display data and saved track actions. Screens consume `UserProfile`, `ArtistProfile`, and `UserLibrarySnapshot` from state. Saved library track ids go through `UserLibraryStorage`: seed/tests use `InMemoryUserLibraryStorage`, and the Android app currently uses `SharedPreferencesUserLibraryStorage`. This is intentionally a small adapter, not a final storage commitment. It can later move to DataStore, Room, API sync, or a cache layer without making Compose screens know which source produced the data.
 
 `PlaybackQueue` owns the current queue source, track order, current index, shuffle flag, and repeat mode. UI code should ask for contextual track playback, previous/next movement, shuffle toggles, and repeat cycling through `AudMoraViewModel`, not calculate list indexes itself. Shuffle uses a deterministic prototype order today so behavior stays testable; later it can become a seeded/random playlist order inside the queue without changing screens. Repeat modes are `Off`, `All`, and `One`.
 
@@ -120,5 +121,6 @@ The current screen is still large, but editor state now uses `TrackStudioEditorS
 - Split `TrackStudioScreen` by editor domains: timeline, scene style, character layer, text cue, assets.
 - Replace `SeedTrackFeedRepository` with real Home/Search/Library/Profile feed implementations when the app gets API, Room, playlists, likes, or recommendations.
 - Extend `UserLibraryRepository` from saved track ids to liked tracks, playlists, folders, downloads, and sync conflict rules.
+- Promote `SharedPreferencesUserLibraryStorage` to DataStore or Room when library state starts carrying richer metadata than a small ordered id list.
 - Decide when to migrate from `MediaPlayer` to Media3/ExoPlayer.
 - Promote `TrackStudioStateHolder` to a ViewModel when Track Studio starts coordinating persistence, previews, and upload flows.

@@ -27,6 +27,7 @@ import androidx.compose.ui.zIndex
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
+import com.opensound.app.data.LocalUserLibraryRepositoryFactory
 import com.opensound.app.navigation.AudMoraScreen
 import com.opensound.app.navigation.BottomNavigation
 import com.opensound.app.models.Track
@@ -50,7 +51,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         viewModel = ViewModelProvider(
             this,
-            AudMoraViewModel.factory()
+            AudMoraViewModel.factory(
+                userLibraryRepository = LocalUserLibraryRepositoryFactory.create(this)
+            )
         )[AudMoraViewModel::class.java]
 
         configureAudMoraSystemBars()
