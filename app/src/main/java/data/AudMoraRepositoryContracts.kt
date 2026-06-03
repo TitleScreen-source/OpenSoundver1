@@ -2,12 +2,13 @@ package com.opensound.app.data
 
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
+import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.models.TrackId
 
 interface TrackRepository {
     fun tracks(): List<Track>
 
-    fun audioResFor(track: Track): Int
+    fun audioSourceFor(track: Track): TrackAudioSource
 }
 
 interface AtmosphereRepository {

@@ -1,6 +1,7 @@
 package com.opensound.app.data
 
 import com.opensound.app.R
+import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.models.TrackVisualMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -20,7 +21,7 @@ class AudMoraCatalogRepositoryTest {
     }
 
     @Test
-    fun audioResFor_usesTrackAudioMetadata() {
+    fun audioSourceFor_usesTrackAudioMetadata() {
         val showcaseTrack = repository.tracks().first { track ->
             track.visualMode == TrackVisualMode.ShowcaseReels
         }
@@ -28,8 +29,14 @@ class AudMoraCatalogRepositoryTest {
             track.visualMode == TrackVisualMode.Atmosphere
         }
 
-        assertEquals(R.raw.rezero_showcase, repository.audioResFor(showcaseTrack))
-        assertEquals(R.raw.track1, repository.audioResFor(regularTrack))
+        assertEquals(
+            TrackAudioSource.LocalRawResource(R.raw.rezero_showcase),
+            repository.audioSourceFor(showcaseTrack)
+        )
+        assertEquals(
+            TrackAudioSource.LocalRawResource(R.raw.track1),
+            repository.audioSourceFor(regularTrack)
+        )
     }
 
     @Test

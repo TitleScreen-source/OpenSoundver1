@@ -54,7 +54,7 @@ Tracks use a stable `TrackId`. This matters more than it first seems:
 
 Do not key app state by `Track.title`. Use `Track.id`.
 
-`Track.audioResId` is the current local prototype audio source. It is already accessed through `TrackRepository`, so later this can become a URL, media id, or cached file reference without making screens know where the audio comes from.
+`Track.audioSource` is the current audio source metadata. Today it uses `TrackAudioSource.LocalRawResource` for prototype files in `res/raw`, and it is accessed through `TrackRepository`. Later this can become a URL, media id, or cached file reference without making screens know where the audio comes from.
 
 Atmosphere scenes are accessed through `AtmosphereRepository`. The current `InMemoryAtmosphereRepository` keeps the prototype simple, but the app-facing contract is already shaped like durable per-track storage: read all known configs, read one config by `TrackId`, and save one config by `TrackId`. This prevents screens and ViewModels from becoming accidental storage layers.
 

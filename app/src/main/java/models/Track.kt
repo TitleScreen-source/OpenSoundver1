@@ -9,11 +9,15 @@ enum class TrackVisualMode {
     ShowcaseReels
 }
 
+sealed class TrackAudioSource {
+    data class LocalRawResource(val resId: Int) : TrackAudioSource()
+}
+
 data class Track(
     val id: TrackId,
     val title: String,
     val artist: String,
-    val audioResId: Int,
+    val audioSource: TrackAudioSource,
     val visualMode: TrackVisualMode = TrackVisualMode.Atmosphere
 ) {
     val usesShowcaseVisuals: Boolean

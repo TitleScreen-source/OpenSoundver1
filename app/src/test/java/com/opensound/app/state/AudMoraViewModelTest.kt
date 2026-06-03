@@ -4,6 +4,7 @@ import com.opensound.app.data.AtmosphereRepository
 import com.opensound.app.data.TrackRepository
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
+import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.models.TrackId
 import com.opensound.app.navigation.AudMoraScreen
 import org.junit.Assert.assertEquals
@@ -71,7 +72,7 @@ class AudMoraViewModelTest {
             id = TrackId("fake-track"),
             title = "Injected Track",
             artist = "Repository Artist",
-            audioResId = 7
+            audioSource = TrackAudioSource.LocalRawResource(7)
         )
         val config = AtmosphereConfig(presetName = "Injected Atmosphere")
         val viewModel = AudMoraViewModel(
@@ -84,7 +85,10 @@ class AudMoraViewModelTest {
         assertEquals(listOf(track), state.tracks)
         assertEquals(track, state.selectedTrack)
         assertEquals(config, state.selectedAtmosphereConfig)
-        assertEquals(700, viewModel.selectedAudioRes)
+        assertEquals(
+            TrackAudioSource.LocalRawResource(700),
+            viewModel.selectedAudioSource
+        )
     }
 
     @Test
@@ -93,7 +97,7 @@ class AudMoraViewModelTest {
             id = TrackId("save-target"),
             title = "Save Target",
             artist = "Repository Artist",
-            audioResId = 9
+            audioSource = TrackAudioSource.LocalRawResource(9)
         )
         val atmosphereRepository = FakeAtmosphereRepository()
         val viewModel = AudMoraViewModel(
@@ -116,8 +120,11 @@ class AudMoraViewModelTest {
             return listOf(track)
         }
 
-        override fun audioResFor(track: Track): Int {
-            return track.audioResId * 100
+        override fun audioSourceFor(track: Track): TrackAudioSource {
+            val source = track.audioSource
+            return when (source) {
+                is TrackAudioSource.LocalRawResource -> TrackAudioSource.LocalRawResource(source.resId * 100)
+            }
         }
     }
 

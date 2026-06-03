@@ -14,7 +14,7 @@
 
 ## Как подключено
 
-- `AudMoraCatalogRepository` задает треку стабильный `TrackId`, локальный `audioResId` и `TrackVisualMode.ShowcaseReels`.
+- `AudMoraCatalogRepository` задает треку стабильный `TrackId`, локальный `TrackAudioSource.LocalRawResource` и `TrackVisualMode.ShowcaseReels`.
 - `MainActivity` передает `usesShowcaseVisuals` в профильный экран как `showcaseMode`.
 - `MiniPlayer` заменяет обычный `AtmosphereMiniPlayerContent` на `ReelsShowcaseMiniPlayer`, если `track.usesShowcaseVisuals`.
 - `ArtistProfileScreen` при `showcaseMode` делегирует экран в `AudmoraShowcaseProfileScreen`.

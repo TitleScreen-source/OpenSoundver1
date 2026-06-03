@@ -3,6 +3,7 @@ package com.opensound.app.data
 import com.opensound.app.R
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
+import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.models.TrackId
 import com.opensound.app.models.TrackVisualMode
 import com.opensound.app.models.atmospherePresets
@@ -22,32 +23,32 @@ class AudMoraCatalogRepository : TrackRepository {
                 id = AudMoraSeedTrackIds.RezeroShowcase,
                 title = "I Feel Sick",
                 artist = "Subaru Natsuki",
-                audioResId = R.raw.rezero_showcase,
+                audioSource = TrackAudioSource.LocalRawResource(R.raw.rezero_showcase),
                 visualMode = TrackVisualMode.ShowcaseReels
             ),
             Track(
                 id = AudMoraSeedTrackIds.NightDrive,
                 title = "Night Drive",
                 artist = "Synth Waves",
-                audioResId = R.raw.track1
+                audioSource = TrackAudioSource.LocalRawResource(R.raw.track1)
             ),
             Track(
                 id = AudMoraSeedTrackIds.LostSignal,
                 title = "Lost Signal",
                 artist = "AUDMORA Artist",
-                audioResId = R.raw.track1
+                audioSource = TrackAudioSource.LocalRawResource(R.raw.track1)
             ),
             Track(
                 id = AudMoraSeedTrackIds.EchoDreams,
                 title = "Echo Dreams",
                 artist = "Cyber Pulse",
-                audioResId = R.raw.track1
+                audioSource = TrackAudioSource.LocalRawResource(R.raw.track1)
             ),
             Track(
                 id = AudMoraSeedTrackIds.MidnightCity,
                 title = "Midnight City",
                 artist = "Neon Empire",
-                audioResId = R.raw.track1
+                audioSource = TrackAudioSource.LocalRawResource(R.raw.track1)
             )
         )
     }
@@ -61,7 +62,7 @@ class AudMoraCatalogRepository : TrackRepository {
         )
     }
 
-    override fun audioResFor(track: Track): Int {
-        return track.audioResId
+    override fun audioSourceFor(track: Track): TrackAudioSource {
+        return track.audioSource
     }
 }

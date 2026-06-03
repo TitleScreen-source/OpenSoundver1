@@ -71,7 +71,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
     AudioPlaybackEffect(
-        audioResId = viewModel.selectedAudioRes,
+        audioSource = viewModel.selectedAudioSource,
         isPlaying = uiState.isPlaying,
         onPlaybackSecondsChanged = viewModel::updatePlaybackSeconds,
         onPlaybackCompleted = viewModel::completePlayback

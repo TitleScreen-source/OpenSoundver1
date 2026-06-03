@@ -8,6 +8,7 @@ import com.opensound.app.data.InMemoryAtmosphereRepository
 import com.opensound.app.data.TrackRepository
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
+import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.navigation.AudMoraScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,8 +36,8 @@ class AudMoraViewModel(
     )
     val uiState: StateFlow<AudMoraUiState> = _uiState.asStateFlow()
 
-    val selectedAudioRes: Int
-        get() = trackRepository.audioResFor(_uiState.value.selectedTrack)
+    val selectedAudioSource: TrackAudioSource
+        get() = trackRepository.audioSourceFor(_uiState.value.selectedTrack)
 
     fun selectScreen(screen: AudMoraScreen) {
         _uiState.update { state ->
