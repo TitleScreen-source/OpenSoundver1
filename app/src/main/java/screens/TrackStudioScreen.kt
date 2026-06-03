@@ -32,18 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.opensound.app.editor.TrackStudioEditorAction
 import com.opensound.app.editor.TrackStudioEditorState
 import com.opensound.app.editor.TrackStudioSection
-import com.opensound.app.editor.addTimelineLayer
-import com.opensound.app.editor.deleteSelectedLayer
-import com.opensound.app.editor.duplicateSelectedLayer
-import com.opensound.app.editor.moveSelectedLayer
-import com.opensound.app.editor.sectionForLayer
-import com.opensound.app.editor.sectionForLayerType
-import com.opensound.app.editor.syncPrimaryLayers
+import com.opensound.app.editor.reduceTrackStudioEditorState
 import com.opensound.app.editor.timelineLayersFor
-import com.opensound.app.editor.toggleLayerVisibility
-import com.opensound.app.editor.updateTimelineLayer
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.AtmosphereLayerType
 import com.opensound.app.models.Track
@@ -65,8 +58,8 @@ fun TrackStudioScreen(
     val previewTimeSeconds = editorState.previewTimeSeconds
     val selectedLayerId = editorState.selectedLayerId
 
-    fun updateDraftConfig(config: AtmosphereConfig) {
-        editorState = editorState.copy(draftConfig = config)
+    fun dispatch(action: TrackStudioEditorAction) {
+        editorState = reduceTrackStudioEditorState(editorState, action)
     }
 
     Column(
@@ -94,28 +87,20 @@ fun TrackStudioScreen(
             previewTimeSeconds = previewTimeSeconds,
             activeDragLayer = selectedSection,
             onDragCharacter = { dx, dy ->
-                updateDraftConfig(
-                    limitAtmosphereConfig(
-                        moveSelectedLayer(
-                            config = draftConfig,
-                            selectedLayerId = selectedLayerId,
-                            type = AtmosphereLayerType.Character,
-                            dx = dx,
-                            dy = dy
-                        )
+                dispatch(
+                    TrackStudioEditorAction.LayerDragged(
+                        type = AtmosphereLayerType.Character,
+                        dx = dx,
+                        dy = dy
                     )
                 )
             },
             onDragText = { dx, dy ->
-                updateDraftConfig(
-                    limitAtmosphereConfig(
-                        moveSelectedLayer(
-                            config = draftConfig,
-                            selectedLayerId = selectedLayerId,
-                            type = AtmosphereLayerType.Text,
-                            dx = dx,
-                            dy = dy
-                        )
+                dispatch(
+                    TrackStudioEditorAction.LayerDragged(
+                        type = AtmosphereLayerType.Text,
+                        dx = dx,
+                        dy = dy
                     )
                 )
             }
@@ -126,73 +111,27 @@ fun TrackStudioScreen(
         TimelinePanel(
             layers = timelineLayersFor(draftConfig),
             previewTimeSeconds = previewTimeSeconds,
-            onPreviewTimeChange = { editorState = editorState.copy(previewTimeSeconds = it) },
+            onPreviewTimeChange = {
+                dispatch(TrackStudioEditorAction.PreviewTimeChanged(it))
+            },
             selectedLayerId = selectedLayerId,
             onLayerTimelineEdit = { updatedLayer ->
-                updateDraftConfig(
-                    limitAtmosphereConfig(
-                        updateTimelineLayer(
-                            config = draftConfig,
-                            updatedLayer = updatedLayer
-                        )
-                    )
-                )
+                dispatch(TrackStudioEditorAction.TimelineLayerChanged(updatedLayer))
             },
             onAddLayer = { type ->
-                addTimelineLayer(
-                    config = draftConfig,
-                    type = type,
-                    playheadSeconds = previewTimeSeconds
-                ).let { result ->
-                    editorState = editorState.copy(
-                        draftConfig = result.first,
-                        selectedLayerId = result.second,
-                        selectedSection = sectionForLayerType(type)
-                    )
-                }
+                dispatch(TrackStudioEditorAction.LayerAdded(type))
             },
             onDuplicateLayer = {
-                duplicateSelectedLayer(
-                    config = draftConfig,
-                    selectedLayerId = selectedLayerId
-                )?.let { result ->
-                    editorState = editorState.copy(
-                        draftConfig = result.first,
-                        selectedLayerId = result.second,
-                        selectedSection = TrackStudioSection.Timing
-                    )
-                }
+                dispatch(TrackStudioEditorAction.SelectedLayerDuplicated)
             },
             onDeleteLayer = {
-                deleteSelectedLayer(
-                    config = draftConfig,
-                    selectedLayerId = selectedLayerId
-                )?.let { result ->
-                    editorState = editorState.copy(
-                        draftConfig = result.first,
-                        selectedLayerId = result.second,
-                        selectedSection = timelineLayersFor(result.first)
-                            .firstOrNull { it.id == result.second }
-                            ?.let { sectionForLayer(it) }
-                            ?: TrackStudioSection.Timing
-                    )
-                }
+                dispatch(TrackStudioEditorAction.SelectedLayerDeleted)
             },
             onToggleLayerVisibility = { layer ->
-                updateDraftConfig(
-                    syncPrimaryLayers(
-                        toggleLayerVisibility(
-                            config = draftConfig,
-                            layerId = layer.id
-                        )
-                    )
-                )
+                dispatch(TrackStudioEditorAction.LayerVisibilityToggled(layer.id))
             },
             onLayerSelected = { layer ->
-                editorState = editorState.copy(
-                    selectedLayerId = layer.id,
-                    selectedSection = sectionForLayer(layer)
-                )
+                dispatch(TrackStudioEditorAction.LayerSelected(layer))
             }
         )
 
@@ -200,7 +139,9 @@ fun TrackStudioScreen(
 
         StudioSections(
             selectedSection = selectedSection,
-            onSectionSelected = { editorState = editorState.copy(selectedSection = it) }
+            onSectionSelected = {
+                dispatch(TrackStudioEditorAction.SectionSelected(it))
+            }
         )
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -208,33 +149,32 @@ fun TrackStudioScreen(
         when (selectedSection) {
             TrackStudioSection.Scene -> SceneSection(
                 draftConfig = draftConfig,
-                onConfigChange = { updateDraftConfig(limitAtmosphereConfig(syncPrimaryLayers(it))) }
+                onConfigChange = {
+                    dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
+                }
             )
 
             TrackStudioSection.Character -> CharacterSection(
                 draftConfig = draftConfig,
                 selectedLayerId = selectedLayerId,
-                onConfigChange = { updateDraftConfig(limitAtmosphereConfig(syncPrimaryLayers(it))) }
+                onConfigChange = {
+                    dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
+                }
             )
 
             TrackStudioSection.Text -> TextSection(
                 draftConfig = draftConfig,
                 selectedLayerId = selectedLayerId,
-                onConfigChange = { updateDraftConfig(limitAtmosphereConfig(syncPrimaryLayers(it))) }
+                onConfigChange = {
+                    dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
+                }
             )
 
             TrackStudioSection.Timing -> TimingSection(
                 draftConfig = draftConfig,
                 selectedLayer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId },
                 onLayerChange = { updatedLayer ->
-                    updateDraftConfig(
-                        limitAtmosphereConfig(
-                            updateTimelineLayer(
-                                config = draftConfig,
-                                updatedLayer = updatedLayer
-                            )
-                        )
-                    )
+                    dispatch(TrackStudioEditorAction.TimelineLayerChanged(updatedLayer))
                 }
             )
 
@@ -247,7 +187,7 @@ fun TrackStudioScreen(
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextButton(
-                onClick = { updateDraftConfig(AtmosphereConfig()) },
+                onClick = { dispatch(TrackStudioEditorAction.DraftReset) },
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Reset", color = Color.White)
