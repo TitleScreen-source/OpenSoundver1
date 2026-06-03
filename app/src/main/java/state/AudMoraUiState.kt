@@ -8,6 +8,11 @@ import com.opensound.app.playback.PlaybackSeekRequest
 
 data class AudMoraUiState(
     val tracks: List<Track>,
+    val homeTracks: List<Track> = tracks,
+    val artistProfileTracks: List<Track> = tracks,
+    val searchTracks: List<Track> = tracks,
+    val libraryTracks: List<Track> = tracks,
+    val userProfileTracks: List<Track> = tracks,
     val playbackQueue: PlaybackQueue,
     val currentScreen: AudMoraScreen = AudMoraScreen.ArtistProfile,
     val atmosphereConfigs: Map<TrackId, AtmosphereConfig> = emptyMap(),

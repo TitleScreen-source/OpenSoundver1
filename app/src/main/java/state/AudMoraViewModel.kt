@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import com.opensound.app.data.AtmosphereRepository
 import com.opensound.app.data.AudMoraCatalogRepository
 import com.opensound.app.data.InMemoryAtmosphereRepository
+import com.opensound.app.data.SeedTrackFeedRepository
+import com.opensound.app.data.TrackFeedRepository
 import com.opensound.app.data.TrackRepository
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
@@ -17,7 +19,8 @@ import kotlinx.coroutines.flow.update
 
 class AudMoraViewModel(
     private val trackRepository: TrackRepository,
-    private val atmosphereRepository: AtmosphereRepository
+    private val atmosphereRepository: AtmosphereRepository,
+    private val trackFeedRepository: TrackFeedRepository = SeedTrackFeedRepository(trackRepository)
 ) : ViewModel() {
     constructor(
         catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository()
@@ -25,13 +28,15 @@ class AudMoraViewModel(
         trackRepository = catalogRepository,
         atmosphereRepository = InMemoryAtmosphereRepository(
             initialConfigs = catalogRepository.initialAtmosphereConfigs()
-        )
+        ),
+        trackFeedRepository = SeedTrackFeedRepository(catalogRepository)
     )
 
     private val _uiState = MutableStateFlow(
         initialState(
             trackRepository = trackRepository,
-            atmosphereRepository = atmosphereRepository
+            atmosphereRepository = atmosphereRepository,
+            trackFeedRepository = trackFeedRepository
         )
     )
     val uiState: StateFlow<AudMoraUiState> = _uiState.asStateFlow()
@@ -191,7 +196,8 @@ class AudMoraViewModel(
 
         fun factory(
             trackRepository: TrackRepository,
-            atmosphereRepository: AtmosphereRepository
+            atmosphereRepository: AtmosphereRepository,
+            trackFeedRepository: TrackFeedRepository = SeedTrackFeedRepository(trackRepository)
         ): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -199,7 +205,8 @@ class AudMoraViewModel(
                     if (modelClass.isAssignableFrom(AudMoraViewModel::class.java)) {
                         return AudMoraViewModel(
                             trackRepository = trackRepository,
-                            atmosphereRepository = atmosphereRepository
+                            atmosphereRepository = atmosphereRepository,
+                            trackFeedRepository = trackFeedRepository
                         ) as T
                     }
 
@@ -210,12 +217,18 @@ class AudMoraViewModel(
 
         private fun initialState(
             trackRepository: TrackRepository,
-            atmosphereRepository: AtmosphereRepository
+            atmosphereRepository: AtmosphereRepository,
+            trackFeedRepository: TrackFeedRepository
         ): AudMoraUiState {
             val tracks = trackRepository.tracks()
 
             return AudMoraUiState(
                 tracks = tracks,
+                homeTracks = trackFeedRepository.homeTracks(),
+                artistProfileTracks = trackFeedRepository.artistProfileTracks(),
+                searchTracks = trackFeedRepository.searchTracks(),
+                libraryTracks = trackFeedRepository.libraryTracks(),
+                userProfileTracks = trackFeedRepository.userProfileTracks(),
                 playbackQueue = PlaybackQueue(tracks = tracks),
                 atmosphereConfigs = atmosphereRepository.atmosphereConfigs()
             )

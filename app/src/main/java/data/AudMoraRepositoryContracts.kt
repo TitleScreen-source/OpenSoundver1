@@ -11,6 +11,18 @@ interface TrackRepository {
     fun audioSourceFor(track: Track): TrackAudioSource
 }
 
+interface TrackFeedRepository {
+    fun homeTracks(): List<Track>
+
+    fun artistProfileTracks(): List<Track>
+
+    fun searchTracks(): List<Track>
+
+    fun libraryTracks(): List<Track>
+
+    fun userProfileTracks(): List<Track>
+}
+
 interface AtmosphereRepository {
     fun atmosphereConfigs(): Map<TrackId, AtmosphereConfig>
 

@@ -82,11 +82,10 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
     val context = LocalContext.current
     val activity = context as? Activity
     val uiState by viewModel.uiState.collectAsState()
-    val userProfileTracks = uiState.tracks.take(3)
 
     fun playFrom(
         source: PlaybackQueueSource,
-        queueTracks: List<Track> = uiState.tracks
+        queueTracks: List<Track>
     ): (Track) -> Unit {
         return { track ->
             viewModel.playTrackFromQueueContext(
@@ -137,16 +136,22 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
         ) {
             when (uiState.currentScreen) {
                 AudMoraScreen.Home -> HomeScreen(
-                    tracks = uiState.tracks,
+                    tracks = uiState.homeTracks,
                     selectedTrack = uiState.selectedTrack,
-                    onTrackClick = playFrom(PlaybackQueueSource.Home)
+                    onTrackClick = playFrom(
+                        source = PlaybackQueueSource.Home,
+                        queueTracks = uiState.homeTracks
+                    )
                 )
 
                 AudMoraScreen.ArtistProfile -> ArtistProfileScreen(
-                    tracks = uiState.tracks,
+                    tracks = uiState.artistProfileTracks,
                     showcaseMode = uiState.selectedTrack.usesShowcaseVisuals,
                     playbackSeconds = uiState.playbackSeconds,
-                    onTrackClick = playFrom(PlaybackQueueSource.ArtistProfile),
+                    onTrackClick = playFrom(
+                        source = PlaybackQueueSource.ArtistProfile,
+                        queueTracks = uiState.artistProfileTracks
+                    ),
                     onAddTrackClick = viewModel::openTrackStudio
                 )
 
@@ -158,21 +163,27 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
                 )
 
                 AudMoraScreen.Search -> SearchScreen(
-                    tracks = uiState.tracks,
-                    onTrackClick = playFrom(PlaybackQueueSource.Search)
+                    tracks = uiState.searchTracks,
+                    onTrackClick = playFrom(
+                        source = PlaybackQueueSource.Search,
+                        queueTracks = uiState.searchTracks
+                    )
                 )
 
                 AudMoraScreen.Library -> LibraryScreen(
-                    tracks = uiState.tracks,
+                    tracks = uiState.libraryTracks,
                     selectedTrack = uiState.selectedTrack,
-                    onTrackClick = playFrom(PlaybackQueueSource.Library)
+                    onTrackClick = playFrom(
+                        source = PlaybackQueueSource.Library,
+                        queueTracks = uiState.libraryTracks
+                    )
                 )
 
                 AudMoraScreen.UserProfile -> UserProfileScreen(
-                    tracks = uiState.tracks,
+                    tracks = uiState.userProfileTracks,
                     onTrackClick = playFrom(
                         source = PlaybackQueueSource.UserProfile,
-                        queueTracks = userProfileTracks
+                        queueTracks = uiState.userProfileTracks
                     )
                 )
             }

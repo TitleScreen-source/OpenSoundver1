@@ -76,7 +76,7 @@ fun UserProfileScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            tracks.take(3).forEach { track ->
+            tracks.forEach { track ->
                 TrackRow(track = track, onClick = { onTrackClick(track) })
                 Spacer(modifier = Modifier.height(10.dp))
             }

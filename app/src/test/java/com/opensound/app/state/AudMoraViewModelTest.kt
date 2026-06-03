@@ -1,6 +1,7 @@
 package com.opensound.app.state
 
 import com.opensound.app.data.AtmosphereRepository
+import com.opensound.app.data.TrackFeedRepository
 import com.opensound.app.data.TrackRepository
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
@@ -135,6 +136,36 @@ class AudMoraViewModelTest {
     }
 
     @Test
+    fun initialState_usesInjectedFeedRepositoryForScreenLists() {
+        val catalogTracks = listOf(
+            testTrack("catalog-first"),
+            testTrack("catalog-second"),
+            testTrack("catalog-third")
+        )
+        val homeTracks = listOf(catalogTracks[1], catalogTracks[2])
+        val userProfileTracks = listOf(catalogTracks[2])
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(catalogTracks),
+            atmosphereRepository = FakeAtmosphereRepository(),
+            trackFeedRepository = FakeTrackFeedRepository(
+                homeTracks = homeTracks,
+                artistProfileTracks = catalogTracks,
+                searchTracks = listOf(catalogTracks[0]),
+                libraryTracks = catalogTracks.reversed(),
+                userProfileTracks = userProfileTracks
+            )
+        )
+
+        val state = viewModel.uiState.value
+        assertEquals(catalogTracks, state.tracks)
+        assertEquals(homeTracks, state.homeTracks)
+        assertEquals(listOf(catalogTracks[0]), state.searchTracks)
+        assertEquals(catalogTracks.reversed(), state.libraryTracks)
+        assertEquals(userProfileTracks, state.userProfileTracks)
+        assertEquals(catalogTracks.first(), state.selectedTrack)
+    }
+
+    @Test
     fun toggleShuffleAndCycleRepeatMode_updatePlaybackQueueModes() {
         val viewModel = AudMoraViewModel()
 
@@ -217,6 +248,34 @@ class AudMoraViewModelTest {
             artist = "Repository Artist",
             audioSource = TrackAudioSource.LocalRawResource(id.hashCode())
         )
+    }
+
+    private class FakeTrackFeedRepository(
+        private val homeTracks: List<Track>,
+        private val artistProfileTracks: List<Track>,
+        private val searchTracks: List<Track>,
+        private val libraryTracks: List<Track>,
+        private val userProfileTracks: List<Track>
+    ) : TrackFeedRepository {
+        override fun homeTracks(): List<Track> {
+            return homeTracks
+        }
+
+        override fun artistProfileTracks(): List<Track> {
+            return artistProfileTracks
+        }
+
+        override fun searchTracks(): List<Track> {
+            return searchTracks
+        }
+
+        override fun libraryTracks(): List<Track> {
+            return libraryTracks
+        }
+
+        override fun userProfileTracks(): List<Track> {
+            return userProfileTracks
+        }
     }
 
     private class FakeAtmosphereRepository(

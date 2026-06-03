@@ -20,7 +20,9 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
 
 - `com.opensound.app.data`
   - Repository contracts for tracks and atmosphere scenes.
+  - Feed contracts for Home, Search, Library, Artist Profile, and User Profile track lists.
   - Local catalog seed data and resource selection.
+  - Local seed feed composition over the current catalog.
   - In-memory atmosphere storage for the current prototype save flow.
   - This is the future place to hide API / database / cache sources behind repository APIs.
 - `com.opensound.app.state`
@@ -78,7 +80,7 @@ UI and app state should not call Android `MediaPlayer` directly. They should des
 
 Keeping the boundary small lets us replace the engine later without rewriting screens.
 
-`AudMoraUiState.tracks` is the app/catalog list shown by screens. `PlaybackQueue.tracks` is the current playback context. Keep them separate: selecting a track from Search, Library, Artist Profile, Home, or User Profile should rebuild the queue for that context without shrinking the catalog list that screens render.
+`AudMoraUiState.tracks` is the app/catalog list. Screen lists such as `homeTracks`, `searchTracks`, `libraryTracks`, `artistProfileTracks`, and `userProfileTracks` come from `TrackFeedRepository`. `PlaybackQueue.tracks` is the current playback context. Keep all three separate: catalog is the known universe, feeds are what screens show, and queue is what next/previous follows after playback starts.
 
 `PlaybackQueue` owns the current queue source, track order, current index, shuffle flag, and repeat mode. UI code should ask for contextual track playback, previous/next movement, shuffle toggles, and repeat cycling through `AudMoraViewModel`, not calculate list indexes itself. Shuffle uses a deterministic prototype order today so behavior stays testable; later it can become a seeded/random playlist order inside the queue without changing screens. Repeat modes are `Off`, `All`, and `One`.
 
@@ -111,7 +113,7 @@ The current screen is still large, but editor state now uses `TrackStudioEditorS
 
 - Rename user-facing code from OpenSound to AudMora where it does not force package/app-id churn.
 - Split `TrackStudioScreen` by editor domains: timeline, scene style, character layer, text cue, assets.
-- Promote screen-level queue sources into repository-backed feeds/playlists when Home/Search/Library stop using the same seed catalog.
+- Replace `SeedTrackFeedRepository` with real Home/Search/Library/Profile feed implementations when the app gets API, Room, playlists, likes, or recommendations.
 - Decide when to migrate from `MediaPlayer` to Media3/ExoPlayer.
 - Add repository contracts for profiles and saved user/library data.
 - Promote `TrackStudioStateHolder` to a ViewModel when Track Studio starts coordinating persistence, previews, and upload flows.
