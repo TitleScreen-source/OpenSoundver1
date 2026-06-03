@@ -27,6 +27,8 @@ import androidx.compose.ui.zIndex
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
+import com.opensound.app.data.AudMoraCatalogRepository
+import com.opensound.app.data.LocalAtmosphereRepositoryFactory
 import com.opensound.app.data.LocalUserLibraryRepositoryFactory
 import com.opensound.app.navigation.AudMoraScreen
 import com.opensound.app.navigation.BottomNavigation
@@ -49,9 +51,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val catalogRepository = AudMoraCatalogRepository()
         viewModel = ViewModelProvider(
             this,
             AudMoraViewModel.factory(
+                catalogRepository = catalogRepository,
+                atmosphereRepository = LocalAtmosphereRepositoryFactory.create(
+                    context = this,
+                    defaultConfigs = catalogRepository.initialAtmosphereConfigs()
+                ),
                 userLibraryRepository = LocalUserLibraryRepositoryFactory.create(this)
             )
         )[AudMoraViewModel::class.java]

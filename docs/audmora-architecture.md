@@ -22,6 +22,7 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
   - Repository contracts for tracks and atmosphere scenes.
   - Feed contracts for Home, Search, Library, Artist Profile, and User Profile track lists.
   - Profile and user library contracts for account-facing display data.
+  - Atmosphere storage adapters: in-memory for seed/tests, SharedPreferences for current local editor saves.
   - User library storage adapters: in-memory for seed/tests, SharedPreferences for current local persistence.
   - Local catalog seed data and resource selection.
   - Local seed feed composition over the current catalog.
@@ -65,7 +66,7 @@ Do not key app state by `Track.title`. Use `Track.id`.
 
 `Track.audioSource` is the current audio source metadata. Today it uses `TrackAudioSource.LocalRawResource` for prototype files in `res/raw`, and it is accessed through `TrackRepository`. `Track.durationSeconds` is prototype duration metadata in the catalog, used by playback UI and seek clamping. Later the source and duration can come from API metadata, Media3, a media id, or a cached file reference without making screens know where the audio comes from.
 
-Atmosphere scenes are accessed through `AtmosphereRepository`. The current `InMemoryAtmosphereRepository` keeps the prototype simple, but the app-facing contract is already shaped like durable per-track storage: read all known configs, read one config by `TrackId`, and save one config by `TrackId`. This prevents screens and ViewModels from becoming accidental storage layers.
+Atmosphere scenes are accessed through `AtmosphereRepository`. The app-facing contract is shaped like durable per-track storage: read all known configs, read one config by `TrackId`, and save one config by `TrackId`. Seed/tests use `InMemoryAtmosphereConfigStorage`; the Android app currently uses `SharedPreferencesAtmosphereConfigStorage` through `StoredAtmosphereRepository`. Default catalog atmospheres and user-saved overrides stay separate, so a saved editor result can replace one track's visual without mutating catalog seed data. This prevents screens and ViewModels from becoming accidental storage layers.
 
 `Track.visualMode` describes how the track should be rendered visually. A showcase/reels track is a visual mode, not a separate kind of audio logic. This keeps the reference content useful without making the product architecture depend on one demo case.
 

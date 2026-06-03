@@ -230,14 +230,15 @@ class AudMoraViewModel(
     companion object {
         fun factory(
             catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository(),
+            atmosphereRepository: AtmosphereRepository = InMemoryAtmosphereRepository(
+                initialConfigs = catalogRepository.initialAtmosphereConfigs()
+            ),
             profileRepository: ProfileRepository = SeedProfileRepository(),
             userLibraryRepository: UserLibraryRepository = SeedUserLibraryRepository()
         ): ViewModelProvider.Factory {
             return factory(
                 trackRepository = catalogRepository,
-                atmosphereRepository = InMemoryAtmosphereRepository(
-                    initialConfigs = catalogRepository.initialAtmosphereConfigs()
-                ),
+                atmosphereRepository = atmosphereRepository,
                 trackFeedRepository = SeedTrackFeedRepository(catalogRepository),
                 profileRepository = profileRepository,
                 userLibraryRepository = userLibraryRepository
