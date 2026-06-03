@@ -64,7 +64,7 @@ Atmosphere scenes are accessed through `AtmosphereRepository`. The current `InMe
 
 ## Playback boundary
 
-UI and app state should not call Android `MediaPlayer` directly. They should describe intent: selected audio source, desired play/pause state, progress updates, and completion.
+UI and app state should not call Android `MediaPlayer` directly. They should describe intent: selected audio source, desired play/pause state, progress updates, seek requests, and completion.
 
 `AudioPlaybackEffect` translates that state into playback commands. The current engine is still `MediaPlayer`, but it is hidden behind `AudioPlaybackEngine` and selected through `AudioPlaybackEngineFactory`. This matters because real music apps usually outgrow the basic player quickly:
 
@@ -77,7 +77,7 @@ UI and app state should not call Android `MediaPlayer` directly. They should des
 
 Keeping the boundary small lets us replace the engine later without rewriting screens.
 
-Playback UI state transitions live in `AudMoraPlaybackReducer`. This keeps app rules such as "switching tracks rewinds progress" and "completion stops playback" testable before AudMora grows a queue, repeat/shuffle, seek, downloads, or background playback.
+Playback UI state transitions live in `AudMoraPlaybackReducer`. This keeps app rules such as "switching tracks rewinds progress", "seek requests are one-shot intents", and "completion stops playback" testable before AudMora grows a queue, repeat/shuffle, richer seeking, downloads, or background playback.
 
 ## Editor boundary
 

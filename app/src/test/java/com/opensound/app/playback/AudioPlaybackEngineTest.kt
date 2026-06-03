@@ -63,6 +63,16 @@ class AudioPlaybackEngineTest {
         assertTrue(completed)
     }
 
+    @Test
+    fun seekTo_updatesEnginePosition() {
+        val engine = FakeAudioPlaybackEngine(isPlaying = false)
+
+        engine.seekTo(12.5f)
+
+        assertEquals(12.5f, engine.currentPositionSeconds, 0.001f)
+        assertEquals(1, engine.seekCalls)
+    }
+
     private class FakeAudioPlaybackEngine(
         override var isPlaying: Boolean
     ) : AudioPlaybackEngine {
@@ -70,6 +80,8 @@ class AudioPlaybackEngineTest {
         var playCalls = 0
             private set
         var pauseCalls = 0
+            private set
+        var seekCalls = 0
             private set
         var seekToStartCalls = 0
             private set
@@ -88,9 +100,12 @@ class AudioPlaybackEngineTest {
             isPlaying = false
         }
 
-        override fun seekToStart() {
-            seekToStartCalls += 1
-            currentPositionSeconds = 0f
+        override fun seekTo(seconds: Float) {
+            seekCalls += 1
+            if (seconds == 0f) {
+                seekToStartCalls += 1
+            }
+            currentPositionSeconds = seconds.coerceAtLeast(0f)
         }
 
         override fun release() {

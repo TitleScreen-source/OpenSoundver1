@@ -4,6 +4,7 @@ import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackId
 import com.opensound.app.navigation.AudMoraScreen
+import com.opensound.app.playback.PlaybackSeekRequest
 
 data class AudMoraUiState(
     val tracks: List<Track>,
@@ -12,6 +13,7 @@ data class AudMoraUiState(
     val atmosphereConfigs: Map<TrackId, AtmosphereConfig> = emptyMap(),
     val isPlaying: Boolean = false,
     val playbackSeconds: Float = 0f,
+    val playbackSeekRequest: PlaybackSeekRequest? = null,
     val isFullPlayerOpen: Boolean = false
 ) {
     val selectedAtmosphereConfig: AtmosphereConfig

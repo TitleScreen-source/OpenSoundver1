@@ -95,6 +95,15 @@ class AudMoraViewModel(
         }
     }
 
+    fun seekPlaybackTo(seconds: Float) {
+        _uiState.update { state ->
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.PlaybackSeekRequested(seconds)
+            )
+        }
+    }
+
     fun completePlayback() {
         _uiState.update { state ->
             reduceAudMoraPlaybackState(

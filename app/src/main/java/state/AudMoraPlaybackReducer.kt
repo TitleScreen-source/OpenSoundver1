@@ -1,11 +1,13 @@
 package com.opensound.app.state
 
 import com.opensound.app.models.Track
+import com.opensound.app.playback.PlaybackSeekRequest
 
 sealed class AudMoraPlaybackAction {
     data class TrackSelectedForPlayback(val track: Track) : AudMoraPlaybackAction()
     data object PlaybackToggled : AudMoraPlaybackAction()
     data class PlaybackProgressChanged(val seconds: Float) : AudMoraPlaybackAction()
+    data class PlaybackSeekRequested(val seconds: Float) : AudMoraPlaybackAction()
     data object PlaybackCompleted : AudMoraPlaybackAction()
 }
 
@@ -21,7 +23,8 @@ fun reduceAudMoraPlaybackState(
                 state.copy(
                     selectedTrack = action.track,
                     isPlaying = true,
-                    playbackSeconds = 0f
+                    playbackSeconds = 0f,
+                    playbackSeekRequest = null
                 )
             }
         }
@@ -34,9 +37,22 @@ fun reduceAudMoraPlaybackState(
             playbackSeconds = action.seconds.coerceAtLeast(0f)
         )
 
+        is AudMoraPlaybackAction.PlaybackSeekRequested -> {
+            val safeSeconds = action.seconds.coerceAtLeast(0f)
+
+            state.copy(
+                playbackSeconds = safeSeconds,
+                playbackSeekRequest = PlaybackSeekRequest(
+                    id = (state.playbackSeekRequest?.id ?: 0L) + 1L,
+                    seconds = safeSeconds
+                )
+            )
+        }
+
         AudMoraPlaybackAction.PlaybackCompleted -> state.copy(
             isPlaying = false,
-            playbackSeconds = 0f
+            playbackSeconds = 0f,
+            playbackSeekRequest = null
         )
     }
 }

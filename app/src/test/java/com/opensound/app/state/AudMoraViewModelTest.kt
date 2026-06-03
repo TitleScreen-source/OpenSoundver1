@@ -67,6 +67,18 @@ class AudMoraViewModelTest {
     }
 
     @Test
+    fun seekPlaybackTo_updatesProgressAndCreatesSeekRequest() {
+        val viewModel = AudMoraViewModel()
+
+        viewModel.seekPlaybackTo(18f)
+
+        val state = viewModel.uiState.value
+        assertEquals(18f, state.playbackSeconds, 0.001f)
+        assertEquals(1L, state.playbackSeekRequest?.id)
+        assertEquals(18f, state.playbackSeekRequest?.seconds ?: -1f, 0.001f)
+    }
+
+    @Test
     fun initialState_usesInjectedRepositoryContracts() {
         val track = Track(
             id = TrackId("fake-track"),

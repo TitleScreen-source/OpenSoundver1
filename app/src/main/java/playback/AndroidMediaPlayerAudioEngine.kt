@@ -2,6 +2,7 @@ package com.opensound.app.playback
 
 import android.content.Context
 import android.media.MediaPlayer
+import kotlin.math.roundToInt
 
 class AndroidMediaPlayerAudioEngine private constructor(
     private val mediaPlayer: MediaPlayer
@@ -20,8 +21,9 @@ class AndroidMediaPlayerAudioEngine private constructor(
         mediaPlayer.pause()
     }
 
-    override fun seekToStart() {
-        mediaPlayer.seekTo(0)
+    override fun seekTo(seconds: Float) {
+        val positionMillis = (seconds.coerceAtLeast(0f) * 1000f).roundToInt()
+        mediaPlayer.seekTo(positionMillis)
     }
 
     override fun release() {

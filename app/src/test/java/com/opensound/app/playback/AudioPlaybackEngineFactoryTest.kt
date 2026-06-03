@@ -29,7 +29,7 @@ class AudioPlaybackEngineFactoryTest {
 
         override fun pause() = Unit
 
-        override fun seekToStart() = Unit
+        override fun seekTo(seconds: Float) = Unit
 
         override fun release() = Unit
 

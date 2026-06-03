@@ -73,6 +73,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
     AudioPlaybackEffect(
         audioSource = viewModel.selectedAudioSource,
         isPlaying = uiState.isPlaying,
+        seekRequest = uiState.playbackSeekRequest,
         onPlaybackSecondsChanged = viewModel::updatePlaybackSeconds,
         onPlaybackCompleted = viewModel::completePlayback
     )

@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 fun AudioPlaybackEffect(
     audioSource: TrackAudioSource,
     isPlaying: Boolean,
+    seekRequest: PlaybackSeekRequest?,
     onPlaybackSecondsChanged: (Float) -> Unit,
     onPlaybackCompleted: () -> Unit
 ) {
@@ -37,6 +38,13 @@ fun AudioPlaybackEffect(
 
         onDispose {
             playbackEngine.release()
+        }
+    }
+
+    LaunchedEffect(playbackEngine, seekRequest) {
+        seekRequest?.let { request ->
+            playbackEngine.seekTo(request.seconds)
+            latestPlaybackSecondsChanged(playbackEngine.currentPositionSeconds)
         }
     }
 

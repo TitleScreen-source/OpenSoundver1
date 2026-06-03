@@ -6,7 +6,10 @@ interface AudioPlaybackEngine {
 
     fun play()
     fun pause()
-    fun seekToStart()
+    fun seekTo(seconds: Float)
+    fun seekToStart() {
+        seekTo(0f)
+    }
     fun release()
     fun setOnCompletion(onCompleted: (() -> Unit)?)
 }
