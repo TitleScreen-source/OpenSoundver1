@@ -55,7 +55,11 @@ class AudMoraViewModelTest {
 
     @Test
     fun completePlayback_stopsAndRewindsUiState() {
-        val viewModel = AudMoraViewModel()
+        val track = testTrack("single-track")
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = FakeAtmosphereRepository()
+        )
 
         viewModel.togglePlay()
         viewModel.updatePlaybackSeconds(24f)
@@ -102,6 +106,18 @@ class AudMoraViewModelTest {
         assertEquals(firstTrack, previousState.selectedTrack)
         assertTrue(previousState.isPlaying)
         assertEquals(0f, previousState.playbackSeconds, 0.001f)
+    }
+
+    @Test
+    fun toggleShuffleAndCycleRepeatMode_updatePlaybackQueueModes() {
+        val viewModel = AudMoraViewModel()
+
+        viewModel.toggleShuffle()
+        viewModel.cycleRepeatMode()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.shuffleEnabled)
+        assertEquals(PlaybackRepeatMode.All, state.repeatMode)
     }
 
     @Test

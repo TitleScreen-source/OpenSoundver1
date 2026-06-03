@@ -25,8 +25,8 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
   - This is the future place to hide API / database / cache sources behind repository APIs.
 - `com.opensound.app.state`
   - App-level UI state and `AudMoraViewModel`.
-  - `PlaybackQueue` for the current catalog order and next/previous track movement.
-  - Playback state reducer for track selection, play/pause, progress, queue movement, seek, and completion.
+  - `PlaybackQueue` for the current catalog order, next/previous track movement, shuffle, and repeat mode.
+  - Playback state reducer for track selection, play/pause, progress, queue movement, shuffle/repeat, seek, and completion.
   - MainActivity should delegate state transitions here instead of owning feature state.
 - `com.opensound.app.navigation`
   - Typed screen enum and bottom navigation.
@@ -78,9 +78,9 @@ UI and app state should not call Android `MediaPlayer` directly. They should des
 
 Keeping the boundary small lets us replace the engine later without rewriting screens.
 
-`PlaybackQueue` owns the current track order and current index. UI code should ask for previous/next track movement through `AudMoraViewModel`, not calculate list indexes itself. This queue is intentionally simple for now, but it is the future home for playlist order, recommendations, shuffle, repeat, and remote playback coordination.
+`PlaybackQueue` owns the current track order, current index, shuffle flag, and repeat mode. UI code should ask for previous/next track movement, shuffle toggles, and repeat cycling through `AudMoraViewModel`, not calculate list indexes itself. Shuffle uses a deterministic prototype order today so behavior stays testable; later it can become a seeded/random playlist order inside the queue without changing screens. Repeat modes are `Off`, `All`, and `One`.
 
-Playback UI state transitions live in `AudMoraPlaybackReducer`. This keeps app rules such as "switching tracks rewinds progress", "queue movement preserves play/pause", "seek requests are one-shot intents", "seek/progress clamps to track duration", and "completion stops playback" testable before AudMora grows repeat/shuffle, richer seeking, downloads, or background playback.
+Playback UI state transitions live in `AudMoraPlaybackReducer`. This keeps app rules such as "switching tracks rewinds progress", "queue movement preserves play/pause", "seek requests are one-shot intents", "seek/progress clamps to track duration", "completion advances through the queue", and "repeat-one restarts the current track" testable before AudMora grows richer seeking, downloads, or background playback.
 
 ## Editor boundary
 
@@ -109,7 +109,7 @@ The current screen is still large, but editor state now uses `TrackStudioEditorS
 
 - Rename user-facing code from OpenSound to AudMora where it does not force package/app-id churn.
 - Split `TrackStudioScreen` by editor domains: timeline, scene style, character layer, text cue, assets.
-- Add repeat/shuffle semantics on top of `PlaybackQueue`.
+- Decide whether the queue should be seeded from home feed, search results, library playlists, or recommendations.
 - Decide when to migrate from `MediaPlayer` to Media3/ExoPlayer.
 - Add repository contracts for profiles and saved user/library data.
 - Promote `TrackStudioStateHolder` to a ViewModel when Track Studio starts coordinating persistence, previews, and upload flows.

@@ -10,6 +10,8 @@ sealed class AudMoraPlaybackAction {
     data class PlaybackSeekRequested(val seconds: Float) : AudMoraPlaybackAction()
     data object PlaybackPreviousRequested : AudMoraPlaybackAction()
     data object PlaybackNextRequested : AudMoraPlaybackAction()
+    data object PlaybackShuffleToggled : AudMoraPlaybackAction()
+    data object PlaybackRepeatModeCycled : AudMoraPlaybackAction()
     data object PlaybackCompleted : AudMoraPlaybackAction()
 }
 
@@ -69,12 +71,42 @@ fun reduceAudMoraPlaybackState(
             queue = state.playbackQueue.skipNext()
         )
 
-        AudMoraPlaybackAction.PlaybackCompleted -> state.copy(
-            isPlaying = false,
+        AudMoraPlaybackAction.PlaybackShuffleToggled -> state.copy(
+            playbackQueue = state.playbackQueue.toggleShuffle()
+        )
+
+        AudMoraPlaybackAction.PlaybackRepeatModeCycled -> state.copy(
+            playbackQueue = state.playbackQueue.cycleRepeatMode()
+        )
+
+        AudMoraPlaybackAction.PlaybackCompleted -> completePlayback(state)
+    }
+}
+
+private fun completePlayback(state: AudMoraUiState): AudMoraUiState {
+    if (state.playbackQueue.repeatMode == PlaybackRepeatMode.One) {
+        return restartCurrentTrack(state)
+    }
+
+    val nextQueue = state.playbackQueue.skipNext()
+    if (nextQueue.currentTrack.id != state.selectedTrack.id) {
+        return state.copy(
+            playbackQueue = nextQueue,
+            isPlaying = true,
             playbackSeconds = 0f,
             playbackSeekRequest = null
         )
     }
+
+    if (state.playbackQueue.repeatMode == PlaybackRepeatMode.All) {
+        return restartCurrentTrack(state)
+    }
+
+    return state.copy(
+        isPlaying = false,
+        playbackSeconds = 0f,
+        playbackSeekRequest = null
+    )
 }
 
 private fun moveToQueuedTrack(
@@ -90,6 +122,17 @@ private fun moveToQueuedTrack(
             playbackSeekRequest = null
         )
     }
+}
+
+private fun restartCurrentTrack(state: AudMoraUiState): AudMoraUiState {
+    return state.copy(
+        isPlaying = true,
+        playbackSeconds = 0f,
+        playbackSeekRequest = PlaybackSeekRequest(
+            id = (state.playbackSeekRequest?.id ?: 0L) + 1L,
+            seconds = 0f
+        )
+    )
 }
 
 private fun clampPlaybackSeconds(

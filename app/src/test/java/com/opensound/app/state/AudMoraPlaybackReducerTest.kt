@@ -138,6 +138,63 @@ class AudMoraPlaybackReducerTest {
     }
 
     @Test
+    fun playbackNextRequested_wrapsAtQueueEndWhenRepeatAllIsEnabled() {
+        val firstTrack = testTrack(id = "track-first")
+        val secondTrack = testTrack(id = "track-second")
+        val state = testState(
+            selectedTrack = secondTrack,
+            tracks = listOf(firstTrack, secondTrack),
+            repeatMode = PlaybackRepeatMode.All,
+            isPlaying = true,
+            playbackSeconds = 42f
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackNextRequested
+        )
+
+        assertEquals(firstTrack, next.selectedTrack)
+        assertTrue(next.isPlaying)
+        assertEquals(0f, next.playbackSeconds, 0.001f)
+    }
+
+    @Test
+    fun playbackShuffleToggled_updatesQueueMode() {
+        val firstTrack = testTrack(id = "track-first")
+        val secondTrack = testTrack(id = "track-second")
+        val state = testState(
+            selectedTrack = firstTrack,
+            tracks = listOf(firstTrack, secondTrack)
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackShuffleToggled
+        )
+
+        assertTrue(next.shuffleEnabled)
+        assertEquals(firstTrack, next.selectedTrack)
+    }
+
+    @Test
+    fun playbackRepeatModeCycled_updatesQueueMode() {
+        val state = testState()
+
+        val repeatAll = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackRepeatModeCycled
+        )
+        val repeatOne = reduceAudMoraPlaybackState(
+            state = repeatAll,
+            action = AudMoraPlaybackAction.PlaybackRepeatModeCycled
+        )
+
+        assertEquals(PlaybackRepeatMode.All, repeatAll.repeatMode)
+        assertEquals(PlaybackRepeatMode.One, repeatOne.repeatMode)
+    }
+
+    @Test
     fun playbackProgressChanged_clampsNegativeProgressToZero() {
         val state = testState()
 
@@ -257,19 +314,92 @@ class AudMoraPlaybackReducerTest {
         assertEquals(0f, next.playbackSeconds, 0.001f)
     }
 
+    @Test
+    fun playbackCompleted_advancesToNextTrackAndKeepsPlaying() {
+        val currentTrack = testTrack(id = "track-current")
+        val nextTrack = testTrack(id = "track-next")
+        val state = testState(
+            selectedTrack = currentTrack,
+            tracks = listOf(currentTrack, nextTrack),
+            isPlaying = true,
+            playbackSeconds = 99f
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackCompleted
+        )
+
+        assertEquals(nextTrack, next.selectedTrack)
+        assertTrue(next.isPlaying)
+        assertEquals(0f, next.playbackSeconds, 0.001f)
+        assertEquals(null, next.playbackSeekRequest)
+    }
+
+    @Test
+    fun playbackCompleted_wrapsToFirstTrackWhenRepeatAllIsEnabled() {
+        val firstTrack = testTrack(id = "track-first")
+        val secondTrack = testTrack(id = "track-second")
+        val state = testState(
+            selectedTrack = secondTrack,
+            tracks = listOf(firstTrack, secondTrack),
+            repeatMode = PlaybackRepeatMode.All,
+            isPlaying = true,
+            playbackSeconds = 99f
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackCompleted
+        )
+
+        assertEquals(firstTrack, next.selectedTrack)
+        assertTrue(next.isPlaying)
+        assertEquals(0f, next.playbackSeconds, 0.001f)
+    }
+
+    @Test
+    fun playbackCompleted_restartsCurrentTrackWhenRepeatOneIsEnabled() {
+        val track = testTrack(id = "track-current")
+        val stateWithSeekRequest = reduceAudMoraPlaybackState(
+            state = testState(
+                selectedTrack = track,
+                repeatMode = PlaybackRepeatMode.One,
+                isPlaying = true,
+                playbackSeconds = 99f
+            ),
+            action = AudMoraPlaybackAction.PlaybackSeekRequested(18f)
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = stateWithSeekRequest,
+            action = AudMoraPlaybackAction.PlaybackCompleted
+        )
+
+        assertEquals(track, next.selectedTrack)
+        assertTrue(next.isPlaying)
+        assertEquals(0f, next.playbackSeconds, 0.001f)
+        assertEquals(2L, next.playbackSeekRequest?.id)
+        assertEquals(0f, next.playbackSeekRequest?.seconds ?: -1f, 0.001f)
+    }
+
     private fun testState(
         selectedTrack: Track = testTrack(id = "track-current"),
         tracks: List<Track> = listOf(selectedTrack),
+        repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.Off,
+        shuffleEnabled: Boolean = false,
         isPlaying: Boolean = false,
         playbackSeconds: Float = 0f
     ): AudMoraUiState {
         val currentIndex = tracks.indexOfFirst { track -> track.id == selectedTrack.id }
+        val queue = PlaybackQueue(
+            tracks = tracks,
+            currentIndex = currentIndex.coerceAtLeast(0),
+            repeatMode = repeatMode
+        )
 
         return AudMoraUiState(
-            playbackQueue = PlaybackQueue(
-                tracks = tracks,
-                currentIndex = currentIndex.coerceAtLeast(0)
-            ),
+            playbackQueue = if (shuffleEnabled) queue.toggleShuffle() else queue,
             isPlaying = isPlaying,
             playbackSeconds = playbackSeconds
         )

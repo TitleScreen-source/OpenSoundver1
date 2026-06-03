@@ -122,6 +122,24 @@ class AudMoraViewModel(
         }
     }
 
+    fun toggleShuffle() {
+        _uiState.update { state ->
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.PlaybackShuffleToggled
+            )
+        }
+    }
+
+    fun cycleRepeatMode() {
+        _uiState.update { state ->
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.PlaybackRepeatModeCycled
+            )
+        }
+    }
+
     fun completePlayback() {
         _uiState.update { state ->
             reduceAudMoraPlaybackState(

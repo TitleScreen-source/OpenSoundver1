@@ -30,6 +30,12 @@ data class AudMoraUiState(
     val canSkipToNextTrack: Boolean
         get() = playbackQueue.canSkipNext
 
+    val shuffleEnabled: Boolean
+        get() = playbackQueue.shuffleEnabled
+
+    val repeatMode: PlaybackRepeatMode
+        get() = playbackQueue.repeatMode
+
     val showPersistentPlayer: Boolean
         get() = currentScreen != AudMoraScreen.TrackStudio
 

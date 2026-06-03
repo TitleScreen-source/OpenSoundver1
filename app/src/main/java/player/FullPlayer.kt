@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.opensound.app.R
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
+import com.opensound.app.state.PlaybackRepeatMode
 import kotlin.math.roundToInt
 
 @Composable
@@ -50,9 +51,13 @@ fun FullPlayer(
     playbackSeconds: Float,
     canSkipPrevious: Boolean,
     canSkipNext: Boolean,
+    shuffleEnabled: Boolean,
+    repeatMode: PlaybackRepeatMode,
     onPlayPauseClick: () -> Unit,
     onPreviousClick: () -> Unit,
     onNextClick: () -> Unit,
+    onShuffleClick: () -> Unit,
+    onRepeatClick: () -> Unit,
     onSeek: (Float) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
@@ -201,7 +206,13 @@ fun FullPlayer(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                PlayerIconButton("SH", 46.dp, onClick = {})
+                PlayerIconButton(
+                    label = "SH",
+                    size = 46.dp,
+                    active = shuffleEnabled,
+                    accentColor = accentColor,
+                    onClick = onShuffleClick
+                )
                 PlayerIconButton(
                     label = "<<",
                     size = 54.dp,
@@ -219,7 +230,13 @@ fun FullPlayer(
                     enabled = canSkipNext,
                     onClick = onNextClick
                 )
-                PlayerIconButton("RE", 46.dp, onClick = {})
+                PlayerIconButton(
+                    label = repeatMode.controlLabel,
+                    size = 46.dp,
+                    active = repeatMode != PlaybackRepeatMode.Off,
+                    accentColor = accentColor,
+                    onClick = onRepeatClick
+                )
             }
 
             Spacer(modifier = Modifier.height(22.dp))
@@ -284,6 +301,13 @@ private fun formatPlaybackTime(seconds: Float): String {
     return "$minutes:${remainingSeconds.toString().padStart(2, '0')}"
 }
 
+private val PlaybackRepeatMode.controlLabel: String
+    get() = when (this) {
+        PlaybackRepeatMode.Off -> "RE"
+        PlaybackRepeatMode.All -> "RA"
+        PlaybackRepeatMode.One -> "R1"
+    }
+
 @Composable
 private fun PlayButton(
     isPlaying: Boolean,
@@ -317,16 +341,34 @@ private fun PlayerIconButton(
     label: String,
     size: Dp,
     enabled: Boolean = true,
+    active: Boolean = false,
+    accentColor: Color = Color.White,
     onClick: () -> Unit
 ) {
+    val backgroundColor = when {
+        !enabled -> Color.White.copy(alpha = 0.03f)
+        active -> accentColor.copy(alpha = 0.22f)
+        else -> Color.White.copy(alpha = 0.08f)
+    }
+    val borderColor = when {
+        !enabled -> Color.White.copy(alpha = 0.05f)
+        active -> accentColor.copy(alpha = 0.72f)
+        else -> Color.White.copy(alpha = 0.12f)
+    }
+    val contentColor = when {
+        !enabled -> Color.White.copy(alpha = 0.35f)
+        active -> Color.White
+        else -> Color.White.copy(alpha = 0.9f)
+    }
+
     Box(
         modifier = Modifier
             .size(size)
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = if (enabled) 0.08f else 0.03f))
+            .background(backgroundColor)
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = if (enabled) 0.12f else 0.05f),
+                color = borderColor,
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(enabled = enabled) { onClick() },
@@ -334,7 +376,7 @@ private fun PlayerIconButton(
     ) {
         Text(
             text = label,
-            color = Color.White.copy(alpha = if (enabled) 1f else 0.35f),
+            color = contentColor,
             fontWeight = FontWeight.SemiBold
         )
     }

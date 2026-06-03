@@ -2,23 +2,52 @@ package com.opensound.app.state
 
 import com.opensound.app.models.Track
 
+enum class PlaybackRepeatMode {
+    Off,
+    All,
+    One;
+
+    fun next(): PlaybackRepeatMode {
+        return when (this) {
+            Off -> All
+            All -> One
+            One -> Off
+        }
+    }
+}
+
 data class PlaybackQueue(
     val tracks: List<Track>,
-    val currentIndex: Int = 0
+    val currentIndex: Int = 0,
+    val shuffleEnabled: Boolean = false,
+    val repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.Off,
+    private val shuffleOrder: List<Int> = tracks.indices.toList()
 ) {
     init {
         require(tracks.isNotEmpty()) { "PlaybackQueue requires at least one track." }
         require(currentIndex in tracks.indices) { "PlaybackQueue currentIndex must point to an existing track." }
+        require(shuffleOrder.sorted() == tracks.indices.toList()) {
+            "PlaybackQueue shuffleOrder must contain every track index exactly once."
+        }
     }
 
     val currentTrack: Track
         get() = tracks[currentIndex]
 
     val canSkipPrevious: Boolean
-        get() = currentIndex > 0
+        get() = orderPosition > 0 || canWrapQueue
 
     val canSkipNext: Boolean
-        get() = currentIndex < tracks.lastIndex
+        get() = orderPosition < playbackOrder.lastIndex || canWrapQueue
+
+    private val playbackOrder: List<Int>
+        get() = if (shuffleEnabled) shuffleOrder else tracks.indices.toList()
+
+    private val orderPosition: Int
+        get() = playbackOrder.indexOf(currentIndex)
+
+    private val canWrapQueue: Boolean
+        get() = repeatMode == PlaybackRepeatMode.All && tracks.size > 1
 
     fun select(track: Track): PlaybackQueue {
         val nextIndex = tracks.indexOfFirst { queuedTrack -> queuedTrack.id == track.id }
@@ -31,18 +60,48 @@ data class PlaybackQueue(
     }
 
     fun skipPrevious(): PlaybackQueue {
-        return if (canSkipPrevious) {
-            copy(currentIndex = currentIndex - 1)
-        } else {
-            this
-        }
+        return moveBy(offset = -1)
     }
 
     fun skipNext(): PlaybackQueue {
-        return if (canSkipNext) {
-            copy(currentIndex = currentIndex + 1)
+        return moveBy(offset = 1)
+    }
+
+    fun toggleShuffle(): PlaybackQueue {
+        return if (shuffleEnabled) {
+            copy(
+                shuffleEnabled = false,
+                shuffleOrder = tracks.indices.toList()
+            )
         } else {
-            this
+            copy(
+                shuffleEnabled = true,
+                shuffleOrder = buildShuffleOrder()
+            )
         }
+    }
+
+    fun cycleRepeatMode(): PlaybackQueue {
+        return copy(repeatMode = repeatMode.next())
+    }
+
+    private fun moveBy(offset: Int): PlaybackQueue {
+        val nextOrderPosition = orderPosition + offset
+        val nextIndex = when {
+            nextOrderPosition in playbackOrder.indices -> playbackOrder[nextOrderPosition]
+            canWrapQueue && nextOrderPosition < 0 -> playbackOrder.last()
+            canWrapQueue && nextOrderPosition > playbackOrder.lastIndex -> playbackOrder.first()
+            else -> currentIndex
+        }
+
+        return if (nextIndex == currentIndex) this else copy(currentIndex = nextIndex)
+    }
+
+    private fun buildShuffleOrder(): List<Int> {
+        val remainingIndices = tracks.indices
+            .filterNot { index -> index == currentIndex }
+            .sortedByDescending { index -> tracks[index].id.value }
+
+        return listOf(currentIndex) + remainingIndices
     }
 }

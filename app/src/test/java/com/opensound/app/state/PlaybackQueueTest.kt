@@ -60,6 +60,50 @@ class PlaybackQueueTest {
         assertEquals(second, next.skipNext().currentTrack)
     }
 
+    @Test
+    fun skipPreviousAndNext_wrapWhenRepeatAllIsEnabled() {
+        val first = testTrack("first")
+        val second = testTrack("second")
+        val queue = PlaybackQueue(
+            tracks = listOf(first, second),
+            repeatMode = PlaybackRepeatMode.All
+        )
+
+        assertTrue(queue.canSkipPrevious)
+        assertTrue(queue.canSkipNext)
+        assertEquals(second, queue.skipPrevious().currentTrack)
+        assertEquals(first, queue.skipNext().skipNext().currentTrack)
+    }
+
+    @Test
+    fun toggleShuffle_keepsCurrentTrackAndUsesShuffledOrder() {
+        val first = testTrack("alpha")
+        val second = testTrack("bravo")
+        val third = testTrack("charlie")
+        val queue = PlaybackQueue(tracks = listOf(first, second, third))
+
+        val shuffled = queue.toggleShuffle()
+
+        assertTrue(shuffled.shuffleEnabled)
+        assertEquals(first, shuffled.currentTrack)
+        assertEquals(third, shuffled.skipNext().currentTrack)
+        assertEquals(second, shuffled.skipNext().skipNext().currentTrack)
+        assertFalse(shuffled.toggleShuffle().shuffleEnabled)
+    }
+
+    @Test
+    fun cycleRepeatMode_movesThroughAllModes() {
+        val queue = PlaybackQueue(tracks = listOf(testTrack("first")))
+
+        val repeatAll = queue.cycleRepeatMode()
+        val repeatOne = repeatAll.cycleRepeatMode()
+        val repeatOff = repeatOne.cycleRepeatMode()
+
+        assertEquals(PlaybackRepeatMode.All, repeatAll.repeatMode)
+        assertEquals(PlaybackRepeatMode.One, repeatOne.repeatMode)
+        assertEquals(PlaybackRepeatMode.Off, repeatOff.repeatMode)
+    }
+
     private fun testTrack(id: String): Track {
         return Track(
             id = TrackId(id),

@@ -45,6 +45,10 @@ fun AudioPlaybackEffect(
         seekRequest?.let { request ->
             playbackEngine.seekTo(request.seconds)
             latestPlaybackSecondsChanged(playbackEngine.currentPositionSeconds)
+            synchronizePlayback(
+                engine = playbackEngine,
+                shouldPlay = isPlaying
+            )
         }
     }
 
