@@ -14,6 +14,17 @@ class TrackStudioEditorStateTest {
         assertEquals(TrackStudioSection.Scene, state.selectedSection)
         assertEquals(24f, state.previewTimeSeconds, 0.001f)
         assertEquals(TrackStudioLayerIds.TEXT_MAIN_LAYER_ID, state.selectedLayerId)
+        assertEquals(false, state.isDirty)
+    }
+
+    @Test
+    fun editorState_isDirtyWhenDraftDiffersFromSavedConfig() {
+        val state = TrackStudioEditorState(
+            draftConfig = AtmosphereConfig(presetName = "Draft"),
+            savedConfig = AtmosphereConfig(presetName = "Saved")
+        )
+
+        assertEquals(true, state.isDirty)
     }
 
     @Test

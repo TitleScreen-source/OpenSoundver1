@@ -21,6 +21,8 @@ class TrackStudioSessionStateHolderTest {
 
         assertTrue(holder.isEditing(trackId))
         assertEquals(config, holder.state.value.draftConfig)
+        assertEquals(config, holder.state.value.savedConfig)
+        assertFalse(holder.state.value.isDirty)
     }
 
     @Test
@@ -57,5 +59,79 @@ class TrackStudioSessionStateHolderTest {
         )
 
         assertFalse(holder.isEditing(TrackId("other")))
+    }
+
+    @Test
+    fun requestClose_returnsTrueWhenDraftIsClean() {
+        val holder = TrackStudioSessionStateHolder()
+
+        holder.startEditing(
+            trackId = TrackId("track"),
+            initialConfig = AtmosphereConfig()
+        )
+
+        assertTrue(holder.requestClose())
+        assertFalse(holder.state.value.closeConfirmationVisible)
+    }
+
+    @Test
+    fun requestClose_showsConfirmationWhenDraftIsDirty() {
+        val holder = TrackStudioSessionStateHolder()
+
+        holder.startEditing(
+            trackId = TrackId("track"),
+            initialConfig = AtmosphereConfig()
+        )
+        holder.dispatch(
+            TrackStudioEditorAction.DraftConfigChanged(
+                AtmosphereConfig(presetName = "Changed")
+            )
+        )
+
+        assertFalse(holder.requestClose())
+        assertTrue(holder.state.value.closeConfirmationVisible)
+    }
+
+    @Test
+    fun discardChanges_restoresSavedConfigAndHidesConfirmation() {
+        val savedConfig = AtmosphereConfig(presetName = "Saved")
+        val holder = TrackStudioSessionStateHolder()
+
+        holder.startEditing(
+            trackId = TrackId("track"),
+            initialConfig = savedConfig
+        )
+        holder.dispatch(
+            TrackStudioEditorAction.DraftConfigChanged(
+                AtmosphereConfig(presetName = "Changed")
+            )
+        )
+        holder.requestClose()
+
+        holder.discardChanges()
+
+        assertEquals(savedConfig, holder.state.value.draftConfig)
+        assertFalse(holder.state.value.isDirty)
+        assertFalse(holder.state.value.closeConfirmationVisible)
+    }
+
+    @Test
+    fun markSaved_updatesSavedConfigAndClearsDirtyState() {
+        val holder = TrackStudioSessionStateHolder()
+
+        holder.startEditing(
+            trackId = TrackId("track"),
+            initialConfig = AtmosphereConfig()
+        )
+        holder.dispatch(
+            TrackStudioEditorAction.DraftConfigChanged(
+                AtmosphereConfig(presetName = "Changed")
+            )
+        )
+
+        holder.markSaved()
+
+        assertEquals(holder.state.value.draftConfig, holder.state.value.savedConfig)
+        assertFalse(holder.state.value.isDirty)
     }
 }

@@ -23,7 +23,10 @@ class TrackStudioSessionStateHolder(
         initialConfig: AtmosphereConfig
     ) {
         editingTrackId = trackId
-        _state.value = TrackStudioEditorState(draftConfig = initialConfig)
+        _state.value = TrackStudioEditorState(
+            draftConfig = initialConfig,
+            savedConfig = initialConfig
+        )
     }
 
     fun dispatch(action: TrackStudioEditorAction) {
@@ -34,6 +37,46 @@ class TrackStudioSessionStateHolder(
 
     fun saveConfig(): AtmosphereConfig {
         return limitAtmosphereConfig(_state.value.draftConfig)
+    }
+
+    fun markSaved() {
+        markSaved(saveConfig())
+    }
+
+    fun markSaved(savedConfig: AtmosphereConfig) {
+        _state.update { state ->
+            state.copy(
+                draftConfig = savedConfig,
+                savedConfig = savedConfig,
+                closeConfirmationVisible = false
+            )
+        }
+    }
+
+    fun requestClose(): Boolean {
+        if (!_state.value.isDirty) {
+            return true
+        }
+
+        _state.update { state ->
+            state.copy(closeConfirmationVisible = true)
+        }
+        return false
+    }
+
+    fun dismissCloseConfirmation() {
+        _state.update { state ->
+            state.copy(closeConfirmationVisible = false)
+        }
+    }
+
+    fun discardChanges() {
+        _state.update { state ->
+            state.copy(
+                draftConfig = state.savedConfig,
+                closeConfirmationVisible = false
+            )
+        }
     }
 
     fun isEditing(trackId: TrackId): Boolean {

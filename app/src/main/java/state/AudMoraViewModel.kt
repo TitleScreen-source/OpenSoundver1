@@ -77,7 +77,9 @@ class AudMoraViewModel(
     }
 
     fun closeTrackStudio() {
-        selectScreen(AudMoraScreen.ArtistProfile)
+        if (trackStudioStateHolder.requestClose()) {
+            selectScreen(AudMoraScreen.ArtistProfile)
+        }
     }
 
     fun saveAtmosphere(config: AtmosphereConfig) {
@@ -100,7 +102,18 @@ class AudMoraViewModel(
     }
 
     fun saveTrackStudioAtmosphere() {
-        saveAtmosphere(trackStudioStateHolder.saveConfig())
+        val savedConfig = trackStudioStateHolder.saveConfig()
+        trackStudioStateHolder.markSaved(savedConfig)
+        saveAtmosphere(savedConfig)
+    }
+
+    fun discardTrackStudioChangesAndClose() {
+        trackStudioStateHolder.discardChanges()
+        selectScreen(AudMoraScreen.ArtistProfile)
+    }
+
+    fun dismissTrackStudioCloseConfirmation() {
+        trackStudioStateHolder.dismissCloseConfirmation()
     }
 
     fun saveTrackToLibrary(track: Track) {

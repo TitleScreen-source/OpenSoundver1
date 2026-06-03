@@ -120,7 +120,8 @@ fun reduceTrackStudioEditorState(
         )
 
         TrackStudioEditorAction.DraftReset -> state.copy(
-            draftConfig = AtmosphereConfig()
+            draftConfig = state.savedConfig,
+            closeConfirmationVisible = false
         )
     }
 }

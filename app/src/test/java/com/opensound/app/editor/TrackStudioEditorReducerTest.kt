@@ -105,4 +105,23 @@ class TrackStudioEditorReducerTest {
             next.draftConfig.layers.first { layer -> layer.id == CHARACTER_MAIN_LAYER_ID }.isVisible
         )
     }
+
+    @Test
+    fun draftReset_restoresSavedConfigAndHidesCloseConfirmation() {
+        val savedConfig = AtmosphereConfig(presetName = "Saved")
+        val draftConfig = AtmosphereConfig(presetName = "Draft")
+        val state = TrackStudioEditorState(
+            draftConfig = draftConfig,
+            savedConfig = savedConfig,
+            closeConfirmationVisible = true
+        )
+
+        val next = reduceTrackStudioEditorState(
+            state = state,
+            action = TrackStudioEditorAction.DraftReset
+        )
+
+        assertEquals(savedConfig, next.draftConfig)
+        assertFalse(next.closeConfirmationVisible)
+    }
 }

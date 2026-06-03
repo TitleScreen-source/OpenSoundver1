@@ -173,6 +173,8 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
                     editorState = trackStudioEditorState,
                     onEditorAction = viewModel::dispatchTrackStudioAction,
                     onSave = viewModel::saveTrackStudioAtmosphere,
+                    onDiscardChangesAndClose = viewModel::discardTrackStudioChangesAndClose,
+                    onDismissCloseConfirmation = viewModel::dismissTrackStudioCloseConfirmation,
                     onClose = viewModel::closeTrackStudio
                 )
 

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +44,8 @@ fun TrackStudioScreen(
     editorState: TrackStudioEditorState,
     onEditorAction: (TrackStudioEditorAction) -> Unit,
     onSave: () -> Unit,
+    onDiscardChangesAndClose: () -> Unit,
+    onDismissCloseConfirmation: () -> Unit,
     onClose: () -> Unit
 ) {
     val draftConfig = editorState.draftConfig
@@ -54,152 +57,168 @@ fun TrackStudioScreen(
         onEditorAction(action)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF08070D))
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 28.dp)
-    ) {
-        StudioHeader(track = track, onClose = onClose)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF08070D))
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 28.dp)
+        ) {
+            StudioHeader(
+                track = track,
+                isDirty = editorState.isDirty,
+                onClose = onClose
+            )
 
-        Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-        Text(
-            text = "Live mini-player preview",
-            color = Color(0xFFC8BED8)
-        )
+            Text(
+                text = "Live mini-player preview",
+                color = Color(0xFFC8BED8)
+            )
 
-        Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-        PreviewCard(
-            track = track,
-            draftConfig = draftConfig,
-            previewTimeSeconds = previewTimeSeconds,
-            activeDragLayer = selectedSection,
-            onDragCharacter = { dx, dy ->
-                dispatch(
-                    TrackStudioEditorAction.LayerDragged(
-                        type = AtmosphereLayerType.Character,
-                        dx = dx,
-                        dy = dy
+            PreviewCard(
+                track = track,
+                draftConfig = draftConfig,
+                previewTimeSeconds = previewTimeSeconds,
+                activeDragLayer = selectedSection,
+                onDragCharacter = { dx, dy ->
+                    dispatch(
+                        TrackStudioEditorAction.LayerDragged(
+                            type = AtmosphereLayerType.Character,
+                            dx = dx,
+                            dy = dy
+                        )
                     )
-                )
-            },
-            onDragText = { dx, dy ->
-                dispatch(
-                    TrackStudioEditorAction.LayerDragged(
-                        type = AtmosphereLayerType.Text,
-                        dx = dx,
-                        dy = dy
+                },
+                onDragText = { dx, dy ->
+                    dispatch(
+                        TrackStudioEditorAction.LayerDragged(
+                            type = AtmosphereLayerType.Text,
+                            dx = dx,
+                            dy = dy
+                        )
                     )
-                )
-            }
-        )
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        TimelinePanel(
-            layers = timelineLayersFor(draftConfig),
-            previewTimeSeconds = previewTimeSeconds,
-            onPreviewTimeChange = {
-                dispatch(TrackStudioEditorAction.PreviewTimeChanged(it))
-            },
-            selectedLayerId = selectedLayerId,
-            onLayerTimelineEdit = { updatedLayer ->
-                dispatch(TrackStudioEditorAction.TimelineLayerChanged(updatedLayer))
-            },
-            onAddLayer = { type ->
-                dispatch(TrackStudioEditorAction.LayerAdded(type))
-            },
-            onDuplicateLayer = {
-                dispatch(TrackStudioEditorAction.SelectedLayerDuplicated)
-            },
-            onDeleteLayer = {
-                dispatch(TrackStudioEditorAction.SelectedLayerDeleted)
-            },
-            onToggleLayerVisibility = { layer ->
-                dispatch(TrackStudioEditorAction.LayerVisibilityToggled(layer.id))
-            },
-            onLayerSelected = { layer ->
-                dispatch(TrackStudioEditorAction.LayerSelected(layer))
-            }
-        )
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        StudioSections(
-            selectedSection = selectedSection,
-            onSectionSelected = {
-                dispatch(TrackStudioEditorAction.SectionSelected(it))
-            }
-        )
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        when (selectedSection) {
-            TrackStudioSection.Scene -> SceneSection(
-                draftConfig = draftConfig,
-                onConfigChange = {
-                    dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
                 }
             )
 
-            TrackStudioSection.Character -> CharacterSection(
-                draftConfig = draftConfig,
+            Spacer(modifier = Modifier.height(18.dp))
+
+            TimelinePanel(
+                layers = timelineLayersFor(draftConfig),
+                previewTimeSeconds = previewTimeSeconds,
+                onPreviewTimeChange = {
+                    dispatch(TrackStudioEditorAction.PreviewTimeChanged(it))
+                },
                 selectedLayerId = selectedLayerId,
-                onConfigChange = {
-                    dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
-                }
-            )
-
-            TrackStudioSection.Text -> TextSection(
-                draftConfig = draftConfig,
-                selectedLayerId = selectedLayerId,
-                onConfigChange = {
-                    dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
-                }
-            )
-
-            TrackStudioSection.Timing -> TimingSection(
-                draftConfig = draftConfig,
-                selectedLayer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId },
-                onLayerChange = { updatedLayer ->
+                onLayerTimelineEdit = { updatedLayer ->
                     dispatch(TrackStudioEditorAction.TimelineLayerChanged(updatedLayer))
+                },
+                onAddLayer = { type ->
+                    dispatch(TrackStudioEditorAction.LayerAdded(type))
+                },
+                onDuplicateLayer = {
+                    dispatch(TrackStudioEditorAction.SelectedLayerDuplicated)
+                },
+                onDeleteLayer = {
+                    dispatch(TrackStudioEditorAction.SelectedLayerDeleted)
+                },
+                onToggleLayerVisibility = { layer ->
+                    dispatch(TrackStudioEditorAction.LayerVisibilityToggled(layer.id))
+                },
+                onLayerSelected = { layer ->
+                    dispatch(TrackStudioEditorAction.LayerSelected(layer))
                 }
             )
 
-            TrackStudioSection.Assets -> AssetsSection(
-                draftConfig = draftConfig
+            Spacer(modifier = Modifier.height(18.dp))
+
+            StudioSections(
+                selectedSection = selectedSection,
+                onSectionSelected = {
+                    dispatch(TrackStudioEditorAction.SectionSelected(it))
+                }
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            when (selectedSection) {
+                TrackStudioSection.Scene -> SceneSection(
+                    draftConfig = draftConfig,
+                    onConfigChange = {
+                        dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
+                    }
+                )
+
+                TrackStudioSection.Character -> CharacterSection(
+                    draftConfig = draftConfig,
+                    selectedLayerId = selectedLayerId,
+                    onConfigChange = {
+                        dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
+                    }
+                )
+
+                TrackStudioSection.Text -> TextSection(
+                    draftConfig = draftConfig,
+                    selectedLayerId = selectedLayerId,
+                    onConfigChange = {
+                        dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
+                    }
+                )
+
+                TrackStudioSection.Timing -> TimingSection(
+                    draftConfig = draftConfig,
+                    selectedLayer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId },
+                    onLayerChange = { updatedLayer ->
+                        dispatch(TrackStudioEditorAction.TimelineLayerChanged(updatedLayer))
+                    }
+                )
+
+                TrackStudioSection.Assets -> AssetsSection(
+                    draftConfig = draftConfig
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TextButton(
+                    onClick = { dispatch(TrackStudioEditorAction.DraftReset) },
+                    enabled = editorState.isDirty,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Reset", color = Color.White)
+                }
+
+                Button(
+                    onClick = onSave,
+                    enabled = editorState.isDirty,
+                    modifier = Modifier.weight(1.4f)
+                ) {
+                    Text("Save atmosphere")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        if (editorState.closeConfirmationVisible) {
+            UnsavedChangesDialog(
+                onKeepEditing = onDismissCloseConfirmation,
+                onDiscard = onDiscardChangesAndClose
             )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextButton(
-                onClick = { dispatch(TrackStudioEditorAction.DraftReset) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Reset", color = Color.White)
-            }
-
-            Button(
-                onClick = onSave,
-                modifier = Modifier.weight(1.4f)
-            ) {
-                Text("Save atmosphere")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
 @Composable
 private fun StudioHeader(
     track: Track,
+    isDirty: Boolean,
     onClose: () -> Unit
 ) {
     Row(
@@ -219,12 +238,45 @@ private fun StudioHeader(
                 color = Color(0xFFC8BED8),
                 style = MaterialTheme.typography.bodyMedium
             )
+            if (isDirty) {
+                Text(
+                    text = "Unsaved changes",
+                    color = Color(0xFF9B5CFF),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
 
         TextButton(onClick = onClose) {
             Text("\u0417\u0430\u043A\u0440\u044B\u0442\u044C", color = Color.White)
         }
     }
+}
+
+@Composable
+private fun UnsavedChangesDialog(
+    onKeepEditing: () -> Unit,
+    onDiscard: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onKeepEditing,
+        title = {
+            Text("Несохранённые изменения")
+        },
+        text = {
+            Text("Закрыть редактор и потерять текущий черновик?")
+        },
+        confirmButton = {
+            TextButton(onClick = onDiscard) {
+                Text("Закрыть")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeepEditing) {
+                Text("Остаться")
+            }
+        }
+    )
 }
 
 @Composable

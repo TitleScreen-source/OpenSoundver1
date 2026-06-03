@@ -39,10 +39,15 @@ enum class TrackStudioSection(
 
 data class TrackStudioEditorState(
     val draftConfig: AtmosphereConfig,
+    val savedConfig: AtmosphereConfig = draftConfig,
     val selectedSection: TrackStudioSection = TrackStudioSection.Scene,
     val previewTimeSeconds: Float = 24f,
-    val selectedLayerId: String = TrackStudioLayerIds.TEXT_MAIN_LAYER_ID
-)
+    val selectedLayerId: String = TrackStudioLayerIds.TEXT_MAIN_LAYER_ID,
+    val closeConfirmationVisible: Boolean = false
+) {
+    val isDirty: Boolean
+        get() = draftConfig != savedConfig
+}
 
 fun sectionForLayer(layer: AtmosphereLayer): TrackStudioSection {
     return sectionForLayerType(layer.type)

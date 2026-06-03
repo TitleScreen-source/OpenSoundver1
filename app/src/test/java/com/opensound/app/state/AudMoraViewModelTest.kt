@@ -309,6 +309,74 @@ class AudMoraViewModelTest {
     }
 
     @Test
+    fun closeTrackStudio_closesImmediatelyWhenDraftIsClean() {
+        val viewModel = AudMoraViewModel()
+
+        viewModel.openTrackStudio()
+        viewModel.closeTrackStudio()
+
+        assertEquals(AudMoraScreen.ArtistProfile, viewModel.uiState.value.currentScreen)
+        assertFalse(viewModel.trackStudioEditorState.value.closeConfirmationVisible)
+    }
+
+    @Test
+    fun closeTrackStudio_showsConfirmationWhenDraftIsDirty() {
+        val viewModel = AudMoraViewModel()
+
+        viewModel.openTrackStudio()
+        viewModel.dispatchTrackStudioAction(
+            TrackStudioEditorAction.DraftConfigChanged(
+                AtmosphereConfig(presetName = "Dirty Draft")
+            )
+        )
+        viewModel.closeTrackStudio()
+
+        assertEquals(AudMoraScreen.TrackStudio, viewModel.uiState.value.currentScreen)
+        assertTrue(viewModel.trackStudioEditorState.value.closeConfirmationVisible)
+    }
+
+    @Test
+    fun discardTrackStudioChangesAndClose_restoresSavedDraftAndClosesEditor() {
+        val track = testTrack("discard-track")
+        val savedConfig = AtmosphereConfig(presetName = "Saved")
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = FakeAtmosphereRepository(track.id, savedConfig)
+        )
+
+        viewModel.openTrackStudio()
+        viewModel.dispatchTrackStudioAction(
+            TrackStudioEditorAction.DraftConfigChanged(
+                AtmosphereConfig(presetName = "Dirty Draft")
+            )
+        )
+        viewModel.closeTrackStudio()
+        viewModel.discardTrackStudioChangesAndClose()
+
+        assertEquals(AudMoraScreen.ArtistProfile, viewModel.uiState.value.currentScreen)
+        assertEquals(savedConfig, viewModel.trackStudioEditorState.value.draftConfig)
+        assertFalse(viewModel.trackStudioEditorState.value.isDirty)
+    }
+
+    @Test
+    fun dismissTrackStudioCloseConfirmation_keepsEditorOpenAndDraftDirty() {
+        val viewModel = AudMoraViewModel()
+
+        viewModel.openTrackStudio()
+        viewModel.dispatchTrackStudioAction(
+            TrackStudioEditorAction.DraftConfigChanged(
+                AtmosphereConfig(presetName = "Dirty Draft")
+            )
+        )
+        viewModel.closeTrackStudio()
+        viewModel.dismissTrackStudioCloseConfirmation()
+
+        assertEquals(AudMoraScreen.TrackStudio, viewModel.uiState.value.currentScreen)
+        assertFalse(viewModel.trackStudioEditorState.value.closeConfirmationVisible)
+        assertTrue(viewModel.trackStudioEditorState.value.isDirty)
+    }
+
+    @Test
     fun saveTrackToLibrary_writesTrackIdAndRefreshesLibraryTracks() {
         val firstTrack = testTrack("first-track")
         val secondTrack = testTrack("second-track")
