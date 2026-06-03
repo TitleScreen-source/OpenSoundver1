@@ -23,24 +23,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.opensound.app.editor.TrackStudioEditorAction
-import com.opensound.app.editor.TrackStudioEditorState
 import com.opensound.app.editor.TrackStudioSection
-import com.opensound.app.editor.reduceTrackStudioEditorState
 import com.opensound.app.editor.timelineLayersFor
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.AtmosphereLayerType
 import com.opensound.app.models.Track
-import com.opensound.app.models.limitAtmosphereConfig
 import com.opensound.app.player.AtmosphereMiniPlayerContent
 
 @Composable
@@ -50,16 +43,18 @@ fun TrackStudioScreen(
     onSave: (AtmosphereConfig) -> Unit,
     onClose: () -> Unit
 ) {
-    var editorState by remember(track.id) {
-        mutableStateOf(TrackStudioEditorState(draftConfig = initialConfig))
-    }
+    val stateHolder = rememberTrackStudioStateHolder(
+        trackId = track.id,
+        initialConfig = initialConfig
+    )
+    val editorState = stateHolder.state
     val draftConfig = editorState.draftConfig
     val selectedSection = editorState.selectedSection
     val previewTimeSeconds = editorState.previewTimeSeconds
     val selectedLayerId = editorState.selectedLayerId
 
     fun dispatch(action: TrackStudioEditorAction) {
-        editorState = reduceTrackStudioEditorState(editorState, action)
+        stateHolder.dispatch(action)
     }
 
     Column(
@@ -194,7 +189,7 @@ fun TrackStudioScreen(
             }
 
             Button(
-                onClick = { onSave(limitAtmosphereConfig(draftConfig)) },
+                onClick = { onSave(stateHolder.saveConfig()) },
                 modifier = Modifier.weight(1.4f)
             ) {
                 Text("Save atmosphere")
