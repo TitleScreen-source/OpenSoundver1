@@ -34,11 +34,17 @@ fun reduceAudMoraPlaybackState(
         )
 
         is AudMoraPlaybackAction.PlaybackProgressChanged -> state.copy(
-            playbackSeconds = action.seconds.coerceAtLeast(0f)
+            playbackSeconds = clampPlaybackSeconds(
+                seconds = action.seconds,
+                state = state
+            )
         )
 
         is AudMoraPlaybackAction.PlaybackSeekRequested -> {
-            val safeSeconds = action.seconds.coerceAtLeast(0f)
+            val safeSeconds = clampPlaybackSeconds(
+                seconds = action.seconds,
+                state = state
+            )
 
             state.copy(
                 playbackSeconds = safeSeconds,
@@ -54,5 +60,17 @@ fun reduceAudMoraPlaybackState(
             playbackSeconds = 0f,
             playbackSeekRequest = null
         )
+    }
+}
+
+private fun clampPlaybackSeconds(
+    seconds: Float,
+    state: AudMoraUiState
+): Float {
+    val durationSeconds = state.selectedTrack.durationSeconds.coerceAtLeast(0f)
+    return if (durationSeconds == 0f) {
+        0f
+    } else {
+        seconds.coerceIn(0f, durationSeconds)
     }
 }

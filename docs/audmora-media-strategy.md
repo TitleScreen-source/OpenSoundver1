@@ -39,6 +39,8 @@ In a real AudMora build, content should be loaded by id:
 
 - `TrackId` identifies the track
 - metadata comes from an API/database
+- duration metadata should come from the catalog/media layer
+- local prototype tracks can keep measured seed durations in `AudMoraCatalogRepository`
 - `TrackAudioSource` describes where playback should load audio from
 - audio comes from streaming or a downloadable media URL
 - cover/profile/atmosphere assets are fetched lazily

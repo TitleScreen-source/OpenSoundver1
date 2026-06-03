@@ -183,7 +183,9 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
                     track = uiState.selectedTrack,
                     isPlaying = uiState.isPlaying,
                     atmosphereConfig = uiState.selectedAtmosphereConfig,
+                    playbackSeconds = uiState.playbackSeconds,
                     onPlayPauseClick = viewModel::togglePlay,
+                    onSeek = viewModel::seekPlaybackTo,
                     onClose = viewModel::closeFullPlayer,
                     modifier = Modifier.fillMaxSize()
                 )

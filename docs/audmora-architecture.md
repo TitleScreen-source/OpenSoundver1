@@ -56,7 +56,7 @@ Tracks use a stable `TrackId`. This matters more than it first seems:
 
 Do not key app state by `Track.title`. Use `Track.id`.
 
-`Track.audioSource` is the current audio source metadata. Today it uses `TrackAudioSource.LocalRawResource` for prototype files in `res/raw`, and it is accessed through `TrackRepository`. Later this can become a URL, media id, or cached file reference without making screens know where the audio comes from.
+`Track.audioSource` is the current audio source metadata. Today it uses `TrackAudioSource.LocalRawResource` for prototype files in `res/raw`, and it is accessed through `TrackRepository`. `Track.durationSeconds` is prototype duration metadata in the catalog, used by playback UI and seek clamping. Later the source and duration can come from API metadata, Media3, a media id, or a cached file reference without making screens know where the audio comes from.
 
 Atmosphere scenes are accessed through `AtmosphereRepository`. The current `InMemoryAtmosphereRepository` keeps the prototype simple, but the app-facing contract is already shaped like durable per-track storage: read all known configs, read one config by `TrackId`, and save one config by `TrackId`. This prevents screens and ViewModels from becoming accidental storage layers.
 
@@ -77,7 +77,7 @@ UI and app state should not call Android `MediaPlayer` directly. They should des
 
 Keeping the boundary small lets us replace the engine later without rewriting screens.
 
-Playback UI state transitions live in `AudMoraPlaybackReducer`. This keeps app rules such as "switching tracks rewinds progress", "seek requests are one-shot intents", and "completion stops playback" testable before AudMora grows a queue, repeat/shuffle, richer seeking, downloads, or background playback.
+Playback UI state transitions live in `AudMoraPlaybackReducer`. This keeps app rules such as "switching tracks rewinds progress", "seek requests are one-shot intents", "seek/progress clamps to track duration", and "completion stops playback" testable before AudMora grows a queue, repeat/shuffle, richer seeking, downloads, or background playback.
 
 ## Editor boundary
 

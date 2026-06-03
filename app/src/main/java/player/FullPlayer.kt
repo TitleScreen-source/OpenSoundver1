@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,13 +40,16 @@ import androidx.compose.ui.unit.dp
 import com.opensound.app.R
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
+import kotlin.math.roundToInt
 
 @Composable
 fun FullPlayer(
     track: Track,
     isPlaying: Boolean,
     atmosphereConfig: AtmosphereConfig,
+    playbackSeconds: Float,
     onPlayPauseClick: () -> Unit,
+    onSeek: (Float) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -178,35 +183,12 @@ fun FullPlayer(
 
             Spacer(modifier = Modifier.height(22.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White.copy(alpha = 0.14f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.45f)
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(accentColor.copy(alpha = 0.82f), accentColor)
-                            )
-                        )
-                )
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("1:42", color = Color(0xFFC8BED8))
-                Text("3:45", color = Color(0xFFC8BED8))
-            }
+            PlaybackSeekBar(
+                playbackSeconds = playbackSeconds,
+                durationSeconds = track.durationSeconds,
+                accentColor = accentColor,
+                onSeek = onSeek
+            )
 
             Spacer(modifier = Modifier.height(26.dp))
 
@@ -239,6 +221,53 @@ fun FullPlayer(
             }
         }
     }
+}
+
+@Composable
+private fun PlaybackSeekBar(
+    playbackSeconds: Float,
+    durationSeconds: Float,
+    accentColor: Color,
+    onSeek: (Float) -> Unit
+) {
+    val safeDuration = durationSeconds.coerceAtLeast(1f)
+    val safePlaybackSeconds = playbackSeconds.coerceIn(0f, safeDuration)
+
+    Slider(
+        value = safePlaybackSeconds,
+        onValueChange = { seconds -> onSeek(seconds) },
+        valueRange = 0f..safeDuration,
+        colors = SliderDefaults.colors(
+            thumbColor = accentColor,
+            activeTrackColor = accentColor,
+            inactiveTrackColor = Color.White.copy(alpha = 0.14f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = formatPlaybackTime(safePlaybackSeconds),
+            color = Color(0xFFC8BED8)
+        )
+        Text(
+            text = formatPlaybackTime(safeDuration),
+            color = Color(0xFFC8BED8)
+        )
+    }
+}
+
+private fun formatPlaybackTime(seconds: Float): String {
+    val safeSeconds = seconds.coerceAtLeast(0f).roundToInt()
+    val minutes = safeSeconds / 60
+    val remainingSeconds = safeSeconds % 60
+
+    return "$minutes:${remainingSeconds.toString().padStart(2, '0')}"
 }
 
 @Composable

@@ -33,10 +33,12 @@ class AudMoraCatalogRepositoryTest {
             TrackAudioSource.LocalRawResource(R.raw.rezero_showcase),
             repository.audioSourceFor(showcaseTrack)
         )
+        assertEquals(35f, showcaseTrack.durationSeconds, 0.001f)
         assertEquals(
             TrackAudioSource.LocalRawResource(R.raw.track1),
             repository.audioSourceFor(regularTrack)
         )
+        assertEquals(209f, regularTrack.durationSeconds, 0.001f)
     }
 
     @Test
@@ -47,6 +49,11 @@ class AudMoraCatalogRepositoryTest {
         assertTrue(AudMoraSeedTrackIds.LostSignal in configTrackIds)
         assertTrue(AudMoraSeedTrackIds.EchoDreams in configTrackIds)
         assertTrue(AudMoraSeedTrackIds.MidnightCity in configTrackIds)
+    }
+
+    @Test
+    fun tracks_havePositivePlaybackDurations() {
+        assertTrue(repository.tracks().all { track -> track.durationSeconds > 0f })
     }
 
     @Test

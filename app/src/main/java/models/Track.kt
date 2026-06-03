@@ -18,6 +18,7 @@ data class Track(
     val title: String,
     val artist: String,
     val audioSource: TrackAudioSource,
+    val durationSeconds: Float = 100f,
     val visualMode: TrackVisualMode = TrackVisualMode.Atmosphere
 ) {
     val usesShowcaseVisuals: Boolean

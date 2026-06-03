@@ -61,6 +61,20 @@ class AudMoraPlaybackReducerTest {
     }
 
     @Test
+    fun playbackProgressChanged_clampsProgressToTrackDuration() {
+        val state = testState(
+            selectedTrack = testTrack(id = "track-current", durationSeconds = 30f)
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackProgressChanged(42f)
+        )
+
+        assertEquals(30f, next.playbackSeconds, 0.001f)
+    }
+
+    @Test
     fun playbackToggled_flipsPlayingState() {
         val state = testState(isPlaying = false)
 
@@ -84,6 +98,21 @@ class AudMoraPlaybackReducerTest {
         assertEquals(32f, next.playbackSeconds, 0.001f)
         assertEquals(1L, next.playbackSeekRequest?.id)
         assertEquals(32f, next.playbackSeekRequest?.seconds ?: -1f, 0.001f)
+    }
+
+    @Test
+    fun playbackSeekRequested_clampsSeekToTrackDuration() {
+        val state = testState(
+            selectedTrack = testTrack(id = "track-current", durationSeconds = 30f)
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackSeekRequested(42f)
+        )
+
+        assertEquals(30f, next.playbackSeconds, 0.001f)
+        assertEquals(30f, next.playbackSeekRequest?.seconds ?: -1f, 0.001f)
     }
 
     @Test
@@ -149,12 +178,16 @@ class AudMoraPlaybackReducerTest {
         )
     }
 
-    private fun testTrack(id: String): Track {
+    private fun testTrack(
+        id: String,
+        durationSeconds: Float = 100f
+    ): Track {
         return Track(
             id = TrackId(id),
             title = id,
             artist = "Test Artist",
-            audioSource = TrackAudioSource.LocalRawResource(resId = id.hashCode())
+            audioSource = TrackAudioSource.LocalRawResource(resId = id.hashCode()),
+            durationSeconds = durationSeconds
         )
     }
 }
