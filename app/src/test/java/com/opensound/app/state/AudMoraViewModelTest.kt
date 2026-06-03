@@ -1,6 +1,10 @@
 package com.opensound.app.state
 
+import com.opensound.app.data.AtmosphereRepository
+import com.opensound.app.data.TrackRepository
 import com.opensound.app.models.AtmosphereConfig
+import com.opensound.app.models.Track
+import com.opensound.app.models.TrackId
 import com.opensound.app.navigation.AudMoraScreen
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -59,5 +63,48 @@ class AudMoraViewModelTest {
         val state = viewModel.uiState.value
         assertFalse(state.isPlaying)
         assertEquals(0f, state.playbackSeconds, 0.001f)
+    }
+
+    @Test
+    fun initialState_usesInjectedRepositoryContracts() {
+        val track = Track(
+            id = TrackId("fake-track"),
+            title = "Injected Track",
+            artist = "Repository Artist",
+            audioResId = 7
+        )
+        val config = AtmosphereConfig(presetName = "Injected Atmosphere")
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = FakeAtmosphereRepository(track.id, config)
+        )
+
+        val state = viewModel.uiState.value
+
+        assertEquals(listOf(track), state.tracks)
+        assertEquals(track, state.selectedTrack)
+        assertEquals(config, state.selectedAtmosphereConfig)
+        assertEquals(700, viewModel.selectedAudioRes)
+    }
+
+    private class FakeTrackRepository(
+        private val track: Track
+    ) : TrackRepository {
+        override fun tracks(): List<Track> {
+            return listOf(track)
+        }
+
+        override fun audioResFor(track: Track): Int {
+            return track.audioResId * 100
+        }
+    }
+
+    private class FakeAtmosphereRepository(
+        private val trackId: TrackId,
+        private val config: AtmosphereConfig
+    ) : AtmosphereRepository {
+        override fun initialAtmosphereConfigs(): Map<TrackId, AtmosphereConfig> {
+            return mapOf(trackId to config)
+        }
     }
 }

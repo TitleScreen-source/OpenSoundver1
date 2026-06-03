@@ -19,8 +19,9 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
 ## Current architecture slice
 
 - `com.opensound.app.data`
+  - Repository contracts for tracks and atmosphere scenes.
   - Local catalog seed data and resource selection.
-  - This is the future place to hide API / database sources behind repository APIs.
+  - This is the future place to hide API / database / cache sources behind repository APIs.
 - `com.opensound.app.state`
   - App-level UI state and `AudMoraViewModel`.
   - MainActivity should delegate state transitions here instead of owning feature state.
@@ -52,7 +53,7 @@ Tracks use a stable `TrackId`. This matters more than it first seems:
 
 Do not key app state by `Track.title`. Use `Track.id`.
 
-`Track.audioResId` is the current local prototype audio source. Later this can become a URL, media id, or cached file reference behind a playback repository.
+`Track.audioResId` is the current local prototype audio source. It is already accessed through `TrackRepository`, so later this can become a URL, media id, or cached file reference without making screens know where the audio comes from.
 
 `Track.visualMode` describes how the track should be rendered visually. A showcase/reels track is a visual mode, not a separate kind of audio logic. This keeps the reference content useful without making the product architecture depend on one demo case.
 
@@ -100,5 +101,5 @@ The current screen is still large, but editor state now uses `TrackStudioEditorS
 - Split `TrackStudioScreen` by editor domains: timeline, scene style, character layer, text cue, assets.
 - Add seek/progress semantics to the playback boundary.
 - Decide when to migrate from `MediaPlayer` to Media3/ExoPlayer.
-- Add a repository contract for tracks, profiles, and atmosphere scenes.
+- Add repository contracts for profiles and saved user/library data.
 - Promote `TrackStudioStateHolder` to a ViewModel when Track Studio starts coordinating persistence, previews, and upload flows.

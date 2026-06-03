@@ -41,4 +41,13 @@ class AudMoraCatalogRepositoryTest {
         assertTrue(AudMoraSeedTrackIds.EchoDreams in configTrackIds)
         assertTrue(AudMoraSeedTrackIds.MidnightCity in configTrackIds)
     }
+
+    @Test
+    fun catalogRepository_implementsTrackAndAtmosphereContracts() {
+        val trackRepository: TrackRepository = repository
+        val atmosphereRepository: AtmosphereRepository = repository
+
+        assertTrue(trackRepository.tracks().isNotEmpty())
+        assertTrue(atmosphereRepository.initialAtmosphereConfigs().isNotEmpty())
+    }
 }

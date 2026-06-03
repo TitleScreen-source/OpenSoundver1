@@ -2,7 +2,9 @@ package com.opensound.app.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.opensound.app.data.AtmosphereRepository
 import com.opensound.app.data.AudMoraCatalogRepository
+import com.opensound.app.data.TrackRepository
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
 import com.opensound.app.navigation.AudMoraScreen
@@ -12,13 +14,26 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class AudMoraViewModel(
-    private val catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository()
+    private val trackRepository: TrackRepository,
+    atmosphereRepository: AtmosphereRepository
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(initialState(catalogRepository))
+    constructor(
+        catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository()
+    ) : this(
+        trackRepository = catalogRepository,
+        atmosphereRepository = catalogRepository
+    )
+
+    private val _uiState = MutableStateFlow(
+        initialState(
+            trackRepository = trackRepository,
+            atmosphereRepository = atmosphereRepository
+        )
+    )
     val uiState: StateFlow<AudMoraUiState> = _uiState.asStateFlow()
 
     val selectedAudioRes: Int
-        get() = catalogRepository.audioResFor(_uiState.value.selectedTrack)
+        get() = trackRepository.audioResFor(_uiState.value.selectedTrack)
 
     fun selectScreen(screen: AudMoraScreen) {
         _uiState.update { state ->
@@ -91,11 +106,24 @@ class AudMoraViewModel(
         fun factory(
             catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository()
         ): ViewModelProvider.Factory {
+            return factory(
+                trackRepository = catalogRepository,
+                atmosphereRepository = catalogRepository
+            )
+        }
+
+        fun factory(
+            trackRepository: TrackRepository,
+            atmosphereRepository: AtmosphereRepository
+        ): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     if (modelClass.isAssignableFrom(AudMoraViewModel::class.java)) {
-                        return AudMoraViewModel(catalogRepository) as T
+                        return AudMoraViewModel(
+                            trackRepository = trackRepository,
+                            atmosphereRepository = atmosphereRepository
+                        ) as T
                     }
 
                     throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
@@ -103,13 +131,16 @@ class AudMoraViewModel(
             }
         }
 
-        private fun initialState(catalogRepository: AudMoraCatalogRepository): AudMoraUiState {
-            val tracks = catalogRepository.tracks()
+        private fun initialState(
+            trackRepository: TrackRepository,
+            atmosphereRepository: AtmosphereRepository
+        ): AudMoraUiState {
+            val tracks = trackRepository.tracks()
 
             return AudMoraUiState(
                 tracks = tracks,
                 selectedTrack = tracks.first(),
-                atmosphereConfigs = catalogRepository.initialAtmosphereConfigs()
+                atmosphereConfigs = atmosphereRepository.initialAtmosphereConfigs()
             )
         }
     }
