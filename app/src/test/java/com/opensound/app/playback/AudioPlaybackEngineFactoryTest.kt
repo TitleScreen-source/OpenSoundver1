@@ -42,6 +42,6 @@ class AudioPlaybackEngineFactoryTest {
 
         override fun release() = Unit
 
-        override fun setOnCompletion(onCompleted: (() -> Unit)?) = Unit
+        override fun setOnEvent(onEvent: ((PlaybackEvent) -> Unit)?) = Unit
     }
 }

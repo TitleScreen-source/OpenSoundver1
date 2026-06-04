@@ -15,7 +15,7 @@ fun AudioPlaybackEffect(
     isPlaying: Boolean,
     seekRequest: PlaybackSeekRequest?,
     onPlaybackSecondsChanged: (Float) -> Unit,
-    onPlaybackCompleted: () -> Unit
+    onPlaybackEvent: (PlaybackEvent) -> Unit
 ) {
     val context = LocalContext.current
     val playbackControllerFactory = remember(context) {
@@ -27,10 +27,12 @@ fun AudioPlaybackEffect(
         playbackControllerFactory.create(mediaItem)
     }
     val latestPlaybackSecondsChanged by rememberUpdatedState(onPlaybackSecondsChanged)
-    val latestPlaybackCompleted by rememberUpdatedState(onPlaybackCompleted)
+    val latestPlaybackEvent by rememberUpdatedState(onPlaybackEvent)
 
     DisposableEffect(playbackController) {
-        playbackController.setOnCompletion(latestPlaybackCompleted)
+        playbackController.setOnEvent { event ->
+            latestPlaybackEvent(event)
+        }
 
         onDispose {
             playbackController.release()

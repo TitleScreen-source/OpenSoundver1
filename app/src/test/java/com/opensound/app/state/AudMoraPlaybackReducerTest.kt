@@ -3,8 +3,12 @@ package com.opensound.app.state
 import com.opensound.app.models.Track
 import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.models.TrackId
+import com.opensound.app.playback.PlaybackError
+import com.opensound.app.playback.PlaybackEvent
+import com.opensound.app.playback.PlaybackLoadState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -249,6 +253,69 @@ class AudMoraPlaybackReducerTest {
 
         assertEquals(PlaybackRepeatMode.All, repeatAll.repeatMode)
         assertEquals(PlaybackRepeatMode.One, repeatOne.repeatMode)
+    }
+
+    @Test
+    fun playbackEventReceived_readyMarksPlaybackReadyAndClearsError() {
+        val error = PlaybackError(code = "old", message = "Old error")
+        val state = testState(isPlaying = true).copy(
+            playbackLoadState = PlaybackLoadState.Error,
+            playbackError = error
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackEventReceived(PlaybackEvent.Ready)
+        )
+
+        assertEquals(PlaybackLoadState.Ready, next.playbackLoadState)
+        assertNull(next.playbackError)
+        assertTrue(next.isPlaying)
+    }
+
+    @Test
+    fun playbackEventReceived_bufferingMarksPlaybackBuffering() {
+        val state = testState(isPlaying = true)
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackEventReceived(PlaybackEvent.Buffering)
+        )
+
+        assertEquals(PlaybackLoadState.Buffering, next.playbackLoadState)
+        assertNull(next.playbackError)
+    }
+
+    @Test
+    fun playbackEventReceived_errorStopsPlaybackAndStoresError() {
+        val error = PlaybackError(code = "network", message = "Network failed")
+        val state = testState(isPlaying = true)
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackEventReceived(PlaybackEvent.Error(error))
+        )
+
+        assertFalse(next.isPlaying)
+        assertEquals(PlaybackLoadState.Error, next.playbackLoadState)
+        assertEquals(error, next.playbackError)
+    }
+
+    @Test
+    fun playbackEventReceived_completedUsesCompletionRules() {
+        val state = testState(
+            isPlaying = true,
+            playbackSeconds = 24f
+        )
+
+        val next = reduceAudMoraPlaybackState(
+            state = state,
+            action = AudMoraPlaybackAction.PlaybackEventReceived(PlaybackEvent.Completed)
+        )
+
+        assertFalse(next.isPlaying)
+        assertEquals(0f, next.playbackSeconds, 0.001f)
+        assertEquals(PlaybackLoadState.Idle, next.playbackLoadState)
     }
 
     @Test

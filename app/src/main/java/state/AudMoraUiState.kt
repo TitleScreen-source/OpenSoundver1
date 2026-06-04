@@ -8,6 +8,8 @@ import com.opensound.app.models.UserLibrarySnapshot
 import com.opensound.app.models.UserLibrarySummary
 import com.opensound.app.models.UserProfile
 import com.opensound.app.navigation.AudMoraScreen
+import com.opensound.app.playback.PlaybackError
+import com.opensound.app.playback.PlaybackLoadState
 import com.opensound.app.playback.PlaybackSeekRequest
 
 data class AudMoraUiState(
@@ -26,6 +28,8 @@ data class AudMoraUiState(
     val isPlaying: Boolean = false,
     val playbackSeconds: Float = 0f,
     val playbackSeekRequest: PlaybackSeekRequest? = null,
+    val playbackLoadState: PlaybackLoadState = PlaybackLoadState.Idle,
+    val playbackError: PlaybackError? = null,
     val isFullPlayerOpen: Boolean = false
 ) {
     val selectedTrack: Track

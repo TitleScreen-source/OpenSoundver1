@@ -1,6 +1,8 @@
 package com.opensound.app.state
 
 import com.opensound.app.models.Track
+import com.opensound.app.playback.PlaybackEvent
+import com.opensound.app.playback.PlaybackLoadState
 import com.opensound.app.playback.PlaybackSeekRequest
 
 sealed class AudMoraPlaybackAction {
@@ -17,6 +19,7 @@ sealed class AudMoraPlaybackAction {
     data object PlaybackShuffleToggled : AudMoraPlaybackAction()
     data object PlaybackRepeatModeCycled : AudMoraPlaybackAction()
     data object PlaybackCompleted : AudMoraPlaybackAction()
+    data class PlaybackEventReceived(val event: PlaybackEvent) : AudMoraPlaybackAction()
 }
 
 fun reduceAudMoraPlaybackState(
@@ -34,14 +37,22 @@ fun reduceAudMoraPlaybackState(
             if (nextQueue.currentTrack.id == state.selectedTrack.id) {
                 state.copy(
                     playbackQueue = nextQueue,
-                    isPlaying = true
+                    isPlaying = true,
+                    playbackLoadState = if (state.playbackLoadState == PlaybackLoadState.Error) {
+                        PlaybackLoadState.Buffering
+                    } else {
+                        state.playbackLoadState
+                    },
+                    playbackError = null
                 )
             } else {
                 state.copy(
                     playbackQueue = nextQueue,
                     isPlaying = true,
                     playbackSeconds = 0f,
-                    playbackSeekRequest = null
+                    playbackSeekRequest = null,
+                    playbackLoadState = PlaybackLoadState.Buffering,
+                    playbackError = null
                 )
             }
         }
@@ -91,6 +102,35 @@ fun reduceAudMoraPlaybackState(
         )
 
         AudMoraPlaybackAction.PlaybackCompleted -> completePlayback(state)
+
+        is AudMoraPlaybackAction.PlaybackEventReceived -> reducePlaybackEvent(
+            state = state,
+            event = action.event
+        )
+    }
+}
+
+private fun reducePlaybackEvent(
+    state: AudMoraUiState,
+    event: PlaybackEvent
+): AudMoraUiState {
+    return when (event) {
+        PlaybackEvent.Ready -> state.copy(
+            playbackLoadState = PlaybackLoadState.Ready,
+            playbackError = null
+        )
+
+        PlaybackEvent.Buffering -> state.copy(
+            playbackLoadState = PlaybackLoadState.Buffering
+        )
+
+        PlaybackEvent.Completed -> completePlayback(state)
+
+        is PlaybackEvent.Error -> state.copy(
+            isPlaying = false,
+            playbackLoadState = PlaybackLoadState.Error,
+            playbackError = event.error
+        )
     }
 }
 
@@ -105,7 +145,9 @@ private fun completePlayback(state: AudMoraUiState): AudMoraUiState {
             playbackQueue = nextQueue,
             isPlaying = true,
             playbackSeconds = 0f,
-            playbackSeekRequest = null
+            playbackSeekRequest = null,
+            playbackLoadState = PlaybackLoadState.Buffering,
+            playbackError = null
         )
     }
 
@@ -116,7 +158,8 @@ private fun completePlayback(state: AudMoraUiState): AudMoraUiState {
     return state.copy(
         isPlaying = false,
         playbackSeconds = 0f,
-        playbackSeekRequest = null
+        playbackSeekRequest = null,
+        playbackLoadState = PlaybackLoadState.Idle
     )
 }
 
@@ -130,7 +173,9 @@ private fun moveToQueuedTrack(
         state.copy(
             playbackQueue = queue,
             playbackSeconds = 0f,
-            playbackSeekRequest = null
+            playbackSeekRequest = null,
+            playbackLoadState = PlaybackLoadState.Buffering,
+            playbackError = null
         )
     }
 }
@@ -142,7 +187,9 @@ private fun restartCurrentTrack(state: AudMoraUiState): AudMoraUiState {
         playbackSeekRequest = PlaybackSeekRequest(
             id = (state.playbackSeekRequest?.id ?: 0L) + 1L,
             seconds = 0f
-        )
+        ),
+        playbackLoadState = PlaybackLoadState.Ready,
+        playbackError = null
     )
 }
 

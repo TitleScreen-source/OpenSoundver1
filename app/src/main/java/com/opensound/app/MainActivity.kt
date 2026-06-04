@@ -115,7 +115,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
         isPlaying = uiState.isPlaying,
         seekRequest = uiState.playbackSeekRequest,
         onPlaybackSecondsChanged = viewModel::updatePlaybackSeconds,
-        onPlaybackCompleted = viewModel::completePlayback
+        onPlaybackEvent = viewModel::handlePlaybackEvent
     )
 
     DisposableEffect(uiState.isFullPlayerOpen, uiState.isShowcaseProfile, activity) {

@@ -17,6 +17,9 @@ import com.opensound.app.models.UserLibrarySnapshot
 import com.opensound.app.models.UserLibrarySummary
 import com.opensound.app.models.UserProfile
 import com.opensound.app.navigation.AudMoraScreen
+import com.opensound.app.playback.PlaybackError
+import com.opensound.app.playback.PlaybackEvent
+import com.opensound.app.playback.PlaybackLoadState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -223,6 +226,23 @@ class AudMoraViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state.shuffleEnabled)
         assertEquals(PlaybackRepeatMode.All, state.repeatMode)
+    }
+
+    @Test
+    fun handlePlaybackEvent_updatesPlaybackLoadAndErrorState() {
+        val viewModel = AudMoraViewModel()
+        val error = PlaybackError(code = "network", message = "Network failed")
+
+        viewModel.togglePlay()
+        viewModel.handlePlaybackEvent(PlaybackEvent.Buffering)
+        assertEquals(PlaybackLoadState.Buffering, viewModel.uiState.value.playbackLoadState)
+
+        viewModel.handlePlaybackEvent(PlaybackEvent.Error(error))
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isPlaying)
+        assertEquals(PlaybackLoadState.Error, state.playbackLoadState)
+        assertEquals(error, state.playbackError)
     }
 
     @Test

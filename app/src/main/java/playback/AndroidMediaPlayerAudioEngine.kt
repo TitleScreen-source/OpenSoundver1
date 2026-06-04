@@ -8,10 +8,10 @@ class AndroidMediaPlayerAudioEngine private constructor(
     private val mediaPlayer: MediaPlayer
 ) : AudioPlaybackEngine {
     override val isPlaying: Boolean
-        get() = mediaPlayer.isPlaying
+        get() = runCatching { mediaPlayer.isPlaying }.getOrDefault(false)
 
     override val currentPositionSeconds: Float
-        get() = mediaPlayer.currentPosition / 1000f
+        get() = runCatching { mediaPlayer.currentPosition / 1000f }.getOrDefault(0f)
 
     override fun play() {
         mediaPlayer.start()
@@ -30,10 +30,28 @@ class AndroidMediaPlayerAudioEngine private constructor(
         mediaPlayer.release()
     }
 
-    override fun setOnCompletion(onCompleted: (() -> Unit)?) {
-        mediaPlayer.setOnCompletionListener {
-            onCompleted?.invoke()
+    override fun setOnEvent(onEvent: ((PlaybackEvent) -> Unit)?) {
+        if (onEvent == null) {
+            mediaPlayer.setOnCompletionListener(null)
+            mediaPlayer.setOnErrorListener(null)
+            return
         }
+
+        mediaPlayer.setOnCompletionListener {
+            onEvent(PlaybackEvent.Completed)
+        }
+        mediaPlayer.setOnErrorListener { _, what, extra ->
+            onEvent(
+                PlaybackEvent.Error(
+                    PlaybackError(
+                        code = "media_player_$what",
+                        message = "MediaPlayer error: what=$what, extra=$extra"
+                    )
+                )
+            )
+            true
+        }
+        onEvent(PlaybackEvent.Ready)
     }
 
     companion object {

@@ -21,6 +21,7 @@ import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
 import com.opensound.app.models.UserLibrarySnapshot
 import com.opensound.app.navigation.AudMoraScreen
+import com.opensound.app.playback.PlaybackEvent
 import com.opensound.app.playback.PlaybackMediaItem
 import com.opensound.app.playback.toPlaybackMediaItem
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -252,6 +253,15 @@ class AudMoraViewModel(
             reduceAudMoraPlaybackState(
                 state = state,
                 action = AudMoraPlaybackAction.PlaybackCompleted
+            )
+        }
+    }
+
+    fun handlePlaybackEvent(event: PlaybackEvent) {
+        _uiState.update { state ->
+            reduceAudMoraPlaybackState(
+                state = state,
+                action = AudMoraPlaybackAction.PlaybackEventReceived(event)
             )
         }
     }
