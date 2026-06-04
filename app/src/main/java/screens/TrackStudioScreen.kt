@@ -3,40 +3,23 @@ package com.opensound.app.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.opensound.app.editor.TrackStudioEditorAction
 import com.opensound.app.editor.TrackStudioEditorState
-import com.opensound.app.editor.TrackStudioSection
 import com.opensound.app.editor.timelineLayersFor
-import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.AtmosphereLayerType
 import com.opensound.app.models.Track
-import com.opensound.app.player.AtmosphereMiniPlayerContent
 
 @Composable
 fun TrackStudioScreen(
@@ -52,6 +35,7 @@ fun TrackStudioScreen(
     val selectedSection = editorState.selectedSection
     val previewTimeSeconds = editorState.previewTimeSeconds
     val selectedLayerId = editorState.selectedLayerId
+    val timelineLayers = timelineLayersFor(draftConfig)
 
     fun dispatch(action: TrackStudioEditorAction) {
         onEditorAction(action)
@@ -66,7 +50,7 @@ fun TrackStudioScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 28.dp)
         ) {
-            StudioHeader(
+            TrackStudioHeader(
                 track = track,
                 isDirty = editorState.isDirty,
                 onClose = onClose
@@ -81,7 +65,7 @@ fun TrackStudioScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            PreviewCard(
+            TrackStudioPreviewCard(
                 track = track,
                 draftConfig = draftConfig,
                 previewTimeSeconds = previewTimeSeconds,
@@ -109,7 +93,7 @@ fun TrackStudioScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             TimelinePanel(
-                layers = timelineLayersFor(draftConfig),
+                layers = timelineLayers,
                 previewTimeSeconds = previewTimeSeconds,
                 onPreviewTimeChange = {
                     dispatch(TrackStudioEditorAction.PreviewTimeChanged(it))
@@ -137,7 +121,7 @@ fun TrackStudioScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            StudioSections(
+            TrackStudioSectionTabs(
                 selectedSection = selectedSection,
                 onSectionSelected = {
                     dispatch(TrackStudioEditorAction.SectionSelected(it))
@@ -146,189 +130,31 @@ fun TrackStudioScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            when (selectedSection) {
-                TrackStudioSection.Scene -> SceneSection(
-                    draftConfig = draftConfig,
-                    onConfigChange = {
-                        dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
-                    }
-                )
-
-                TrackStudioSection.Character -> CharacterSection(
-                    draftConfig = draftConfig,
-                    selectedLayerId = selectedLayerId,
-                    onConfigChange = {
-                        dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
-                    }
-                )
-
-                TrackStudioSection.Text -> TextSection(
-                    draftConfig = draftConfig,
-                    selectedLayerId = selectedLayerId,
-                    onConfigChange = {
-                        dispatch(TrackStudioEditorAction.DraftConfigChanged(it))
-                    }
-                )
-
-                TrackStudioSection.Timing -> TimingSection(
-                    draftConfig = draftConfig,
-                    selectedLayer = timelineLayersFor(draftConfig).firstOrNull { it.id == selectedLayerId },
-                    onLayerChange = { updatedLayer ->
-                        dispatch(TrackStudioEditorAction.TimelineLayerChanged(updatedLayer))
-                    }
-                )
-
-                TrackStudioSection.Assets -> AssetsSection(
-                    draftConfig = draftConfig
-                )
-            }
+            TrackStudioSectionHost(
+                editorState = editorState,
+                timelineLayers = timelineLayers,
+                onEditorAction = { action ->
+                    dispatch(action)
+                }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(
-                    onClick = { dispatch(TrackStudioEditorAction.DraftReset) },
-                    enabled = editorState.isDirty,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Reset", color = Color.White)
-                }
-
-                Button(
-                    onClick = onSave,
-                    enabled = editorState.isDirty,
-                    modifier = Modifier.weight(1.4f)
-                ) {
-                    Text("Save atmosphere")
-                }
-            }
+            TrackStudioSaveBar(
+                isDirty = editorState.isDirty,
+                onReset = {
+                    dispatch(TrackStudioEditorAction.DraftReset)
+                },
+                onSave = onSave
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
         }
 
         if (editorState.closeConfirmationVisible) {
-            UnsavedChangesDialog(
+            TrackStudioUnsavedChangesDialog(
                 onKeepEditing = onDismissCloseConfirmation,
                 onDiscard = onDiscardChangesAndClose
-            )
-        }
-    }
-}
-
-@Composable
-private fun StudioHeader(
-    track: Track,
-    isDirty: Boolean,
-    onClose: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = "Track Studio",
-                color = Color.White,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = track.title,
-                color = Color(0xFFC8BED8),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            if (isDirty) {
-                Text(
-                    text = "Unsaved changes",
-                    color = Color(0xFF9B5CFF),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-
-        TextButton(onClick = onClose) {
-            Text("\u0417\u0430\u043A\u0440\u044B\u0442\u044C", color = Color.White)
-        }
-    }
-}
-
-@Composable
-private fun UnsavedChangesDialog(
-    onKeepEditing: () -> Unit,
-    onDiscard: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onKeepEditing,
-        title = {
-            Text("Несохранённые изменения")
-        },
-        text = {
-            Text("Закрыть редактор и потерять текущий черновик?")
-        },
-        confirmButton = {
-            TextButton(onClick = onDiscard) {
-                Text("Закрыть")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onKeepEditing) {
-                Text("Остаться")
-            }
-        }
-    )
-}
-
-@Composable
-private fun PreviewCard(
-    track: Track,
-    draftConfig: AtmosphereConfig,
-    previewTimeSeconds: Float,
-    activeDragLayer: TrackStudioSection,
-    onDragCharacter: (Float, Float) -> Unit,
-    onDragText: (Float, Float) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(178.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF11101A))
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(14.dp)
-        ) {
-            AtmosphereMiniPlayerContent(
-                track = track,
-                isPlaying = true,
-                atmosphereConfig = draftConfig,
-                onPlayPauseClick = {},
-                onOpenFullPlayer = {},
-                currentTimeSeconds = previewTimeSeconds,
-                editorDragMode = activeDragLayer.editorDragMode,
-                onCharacterDrag = onDragCharacter,
-                onTextDrag = onDragText,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-            )
-        }
-    }
-}
-
-@Composable
-private fun StudioSections(
-    selectedSection: TrackStudioSection,
-    onSectionSelected: (TrackStudioSection) -> Unit
-) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        items(TrackStudioSection.ordered) { section ->
-            SectionChip(
-                name = section.label,
-                selected = selectedSection == section,
-                onClick = { onSectionSelected(section) }
             )
         }
     }

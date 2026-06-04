@@ -49,7 +49,7 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
   - Track Studio editor state and section vocabulary.
   - Timeline/layer operations such as add, duplicate, delete, trim, snap, and protected-layer rules.
   - Character/text layer edit rules such as drag bounds, text cue length, and selected-layer fallback.
-  - This keeps editor concepts typed before the large screen is split by feature area.
+  - This keeps editor concepts typed while the large screen is being split by feature area.
 - `com.opensound.app.showcase`
   - Reference reels/profile visuals.
   - New visual showcase cases should live here or in a child package.
@@ -107,7 +107,7 @@ Track Studio is the future creative center of AudMora. It will likely grow into 
 - source assets
 - preview/playhead behavior
 
-The current screen is still large, but editor state now uses `TrackStudioEditorState`, `TrackStudioSection`, and `TrackStudioEditorAction`. State transitions live in `TrackStudioEditorReducer`; session state lives in `TrackStudioSessionStateHolder` and is owned by `AudMoraViewModel`; timeline rules live in `TrackStudioTimelineOperations`; text/character edit rules live in `TrackStudioLayerOperations`; timeline UI lives in `TrackStudioTimelinePanel`; editor section UI lives in `TrackStudioEditorSections`; shared Track Studio controls live in `TrackStudioComponents`. The session tracks both `draftConfig` and `savedConfig`, so `isDirty`, reset-to-saved, save, discard, autosave, per-track restore, and close confirmation stay out of the Compose screen. This matters because section strings such as `Scene` or `Timing`, clip operations such as duplicate/delete/trim, layer rules such as text length or drag bounds, and timeline controls are separate reasons to change. Keeping product rules outside Compose makes them testable, and keeping large UI domains in their own files makes the editor easier to grow without losing the showcase-quality visual direction.
+The current screen is being reduced into smaller UI domains. Editor state uses `TrackStudioEditorState`, `TrackStudioSection`, and `TrackStudioEditorAction`. State transitions live in `TrackStudioEditorReducer`; session state lives in `TrackStudioSessionStateHolder` and is owned by `AudMoraViewModel`; timeline rules live in `TrackStudioTimelineOperations`; text/character edit rules live in `TrackStudioLayerOperations`; timeline UI lives in `TrackStudioTimelinePanel`; editor section UI lives in `TrackStudioEditorSections`; selected-section routing lives in `TrackStudioSectionHost`; header, preview, tabs, save/reset bar, and close dialog live in `TrackStudioChrome`; shared Track Studio controls live in `TrackStudioComponents`. The session tracks both `draftConfig` and `savedConfig`, so `isDirty`, reset-to-saved, save, discard, autosave, per-track restore, and close confirmation stay out of the Compose screen. This matters because section strings such as `Scene` or `Timing`, clip operations such as duplicate/delete/trim, layer rules such as text length or drag bounds, and timeline controls are separate reasons to change. Keeping product rules outside Compose makes them testable, and keeping large UI domains in their own files makes the editor easier to grow without losing the showcase-quality visual direction.
 
 ## Growth rules for future sessions
 
@@ -122,7 +122,8 @@ The current screen is still large, but editor state now uses `TrackStudioEditorS
 ## Next likely architecture steps
 
 - Rename user-facing code from OpenSound to AudMora where it does not force package/app-id churn.
-- Split `TrackStudioScreen` by editor domains: timeline, scene style, character layer, text cue, assets.
+- Split `TrackStudioTimelinePanel` into toolbar, selected clip summary, ruler, layer row, and trim handle files as timeline editing grows.
+- Split `TrackStudioEditorSections` into separate domain files when scene, character, text, timing, or assets each start growing their own controls.
 - Replace `SeedTrackFeedRepository` with real Home/Search/Library/Profile feed implementations when the app gets API, Room, playlists, likes, or recommendations.
 - Extend `UserLibraryRepository` from saved track ids to liked tracks, playlists, folders, downloads, and sync conflict rules.
 - Promote `SharedPreferencesUserLibraryStorage` to DataStore or Room when library state starts carrying richer metadata than a small ordered id list.
