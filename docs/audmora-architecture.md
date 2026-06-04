@@ -42,6 +42,7 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
 - `com.opensound.app.playback`
   - Playback interface and Compose side effects.
   - `PlaybackMediaItem` as the app-facing description of the selected playable track: stable track id, title, artist, duration, and resolved audio source.
+  - `PlaybackController` as the app-facing command layer for play/pause sync, seek, completion rewind, and release.
   - `AudioPlaybackEngine` is the app-facing contract.
   - `AudioPlaybackEngineFactory` maps a `PlaybackMediaItem` to the current engine implementation.
   - `AndroidMediaPlayerAudioEngine` is the current Android implementation.
@@ -80,7 +81,7 @@ UI and app state should not call Android `MediaPlayer` directly. They should des
 
 `PlaybackMediaItem` is the playback layer's current media contract. It wraps the selected track's stable `TrackId`, display metadata, duration, and resolved `TrackAudioSource`. This matters because two tracks can temporarily share the same prototype audio file, but playback identity, history, notifications, queue state, cache keys, and future MediaSession metadata must still follow the track id.
 
-`AudioPlaybackEffect` translates playback state and the selected `PlaybackMediaItem` into playback commands. The current engine is still `MediaPlayer`, but it is hidden behind `AudioPlaybackEngine` and selected through `AudioPlaybackEngineFactory`. This matters because real music apps usually outgrow the basic player quickly:
+`PlaybackController` owns app-level playback commands: play/pause synchronization, seek, completion rewind, and release. `AudioPlaybackEffect` should remain a Compose side-effect bridge: create the controller for the selected `PlaybackMediaItem`, feed it state changes, and report progress/completion back to `AudMoraViewModel`. The current engine is still `MediaPlayer`, but it is hidden behind `AudioPlaybackEngine`, selected through `AudioPlaybackEngineFactory`, and wrapped by `PlaybackController`. This matters because real music apps usually outgrow the basic player quickly:
 
 - background playback
 - lock-screen and notification controls

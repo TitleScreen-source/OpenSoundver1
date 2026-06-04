@@ -18,47 +18,37 @@ fun AudioPlaybackEffect(
     onPlaybackCompleted: () -> Unit
 ) {
     val context = LocalContext.current
-    val playbackEngineFactory = remember(context) {
-        AndroidAudioPlaybackEngineFactory(context)
+    val playbackControllerFactory = remember(context) {
+        DefaultPlaybackControllerFactory(
+            engineFactory = AndroidAudioPlaybackEngineFactory(context)
+        )
     }
-    val playbackEngine = remember(mediaItem, playbackEngineFactory) {
-        playbackEngineFactory.create(mediaItem)
+    val playbackController = remember(mediaItem, playbackControllerFactory) {
+        playbackControllerFactory.create(mediaItem)
     }
     val latestPlaybackSecondsChanged by rememberUpdatedState(onPlaybackSecondsChanged)
     val latestPlaybackCompleted by rememberUpdatedState(onPlaybackCompleted)
 
-    DisposableEffect(playbackEngine) {
-        playbackEngine.setOnCompletion {
-            handlePlaybackCompletion(
-                engine = playbackEngine,
-                onPlaybackCompleted = latestPlaybackCompleted
-            )
-        }
+    DisposableEffect(playbackController) {
+        playbackController.setOnCompletion(latestPlaybackCompleted)
 
         onDispose {
-            playbackEngine.release()
+            playbackController.release()
         }
     }
 
-    LaunchedEffect(playbackEngine, seekRequest) {
+    LaunchedEffect(playbackController, seekRequest) {
         seekRequest?.let { request ->
-            playbackEngine.seekTo(request.seconds)
-            latestPlaybackSecondsChanged(playbackEngine.currentPositionSeconds)
-            synchronizePlayback(
-                engine = playbackEngine,
-                shouldPlay = isPlaying
-            )
+            latestPlaybackSecondsChanged(playbackController.seekTo(request.seconds))
+            playbackController.synchronize(shouldPlay = isPlaying)
         }
     }
 
-    LaunchedEffect(playbackEngine, isPlaying) {
-        synchronizePlayback(
-            engine = playbackEngine,
-            shouldPlay = isPlaying
-        )
+    LaunchedEffect(playbackController, isPlaying) {
+        playbackController.synchronize(shouldPlay = isPlaying)
 
         while (isPlaying) {
-            latestPlaybackSecondsChanged(playbackEngine.currentPositionSeconds)
+            latestPlaybackSecondsChanged(playbackController.currentPositionSeconds)
             delay(33L)
         }
     }
