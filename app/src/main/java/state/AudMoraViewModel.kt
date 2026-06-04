@@ -19,9 +19,10 @@ import com.opensound.app.editor.TrackStudioEditorState
 import com.opensound.app.editor.TrackStudioSessionStateHolder
 import com.opensound.app.models.AtmosphereConfig
 import com.opensound.app.models.Track
-import com.opensound.app.models.TrackAudioSource
 import com.opensound.app.models.UserLibrarySnapshot
 import com.opensound.app.navigation.AudMoraScreen
+import com.opensound.app.playback.PlaybackMediaItem
+import com.opensound.app.playback.toPlaybackMediaItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,8 +63,14 @@ class AudMoraViewModel(
     private val trackStudioStateHolder = TrackStudioSessionStateHolder()
     val trackStudioEditorState: StateFlow<TrackStudioEditorState> = trackStudioStateHolder.state
 
-    val selectedAudioSource: TrackAudioSource
-        get() = trackRepository.audioSourceFor(_uiState.value.selectedTrack)
+    val selectedPlaybackMediaItem: PlaybackMediaItem
+        get() {
+            val selectedTrack = _uiState.value.selectedTrack
+
+            return selectedTrack.toPlaybackMediaItem(
+                audioSource = trackRepository.audioSourceFor(selectedTrack)
+            )
+        }
 
     fun selectScreen(screen: AudMoraScreen) {
         _uiState.update { state ->

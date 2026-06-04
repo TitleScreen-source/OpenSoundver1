@@ -7,12 +7,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
-import com.opensound.app.models.TrackAudioSource
 import kotlinx.coroutines.delay
 
 @Composable
 fun AudioPlaybackEffect(
-    audioSource: TrackAudioSource,
+    mediaItem: PlaybackMediaItem,
     isPlaying: Boolean,
     seekRequest: PlaybackSeekRequest?,
     onPlaybackSecondsChanged: (Float) -> Unit,
@@ -22,8 +21,8 @@ fun AudioPlaybackEffect(
     val playbackEngineFactory = remember(context) {
         AndroidAudioPlaybackEngineFactory(context)
     }
-    val playbackEngine = remember(audioSource, playbackEngineFactory) {
-        playbackEngineFactory.create(audioSource)
+    val playbackEngine = remember(mediaItem, playbackEngineFactory) {
+        playbackEngineFactory.create(mediaItem)
     }
     val latestPlaybackSecondsChanged by rememberUpdatedState(onPlaybackSecondsChanged)
     val latestPlaybackCompleted by rememberUpdatedState(onPlaybackCompleted)

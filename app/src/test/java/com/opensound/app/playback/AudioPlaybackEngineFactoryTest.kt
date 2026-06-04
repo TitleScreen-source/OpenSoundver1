@@ -1,6 +1,7 @@
 package com.opensound.app.playback
 
 import com.opensound.app.models.TrackAudioSource
+import com.opensound.app.models.TrackId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
@@ -15,7 +16,15 @@ class AudioPlaybackEngineFactoryTest {
             expectedEngine
         }
 
-        val engine = factory.create(TrackAudioSource.LocalRawResource(resId = 42))
+        val engine = factory.create(
+            PlaybackMediaItem(
+                id = TrackId("track"),
+                title = "Track",
+                artist = "Artist",
+                durationSeconds = 120f,
+                audioSource = TrackAudioSource.LocalRawResource(resId = 42)
+            )
+        )
 
         assertSame(expectedEngine, engine)
         assertEquals(42, requestedAudioResId)

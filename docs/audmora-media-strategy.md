@@ -42,6 +42,7 @@ In a real AudMora build, content should be loaded by id:
 - duration metadata should come from the catalog/media layer
 - local prototype tracks can keep measured seed durations in `AudMoraCatalogRepository`
 - `TrackAudioSource` describes where playback should load audio from
+- `PlaybackMediaItem` combines the track id, display metadata, duration, and resolved audio source for the playback layer
 - audio comes from streaming or a downloadable media URL
 - cover/profile/atmosphere assets are fetched lazily
 - local cache stores recently used media

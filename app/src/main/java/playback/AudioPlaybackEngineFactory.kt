@@ -4,7 +4,7 @@ import android.content.Context
 import com.opensound.app.models.TrackAudioSource
 
 fun interface AudioPlaybackEngineFactory {
-    fun create(audioSource: TrackAudioSource): AudioPlaybackEngine
+    fun create(mediaItem: PlaybackMediaItem): AudioPlaybackEngine
 }
 
 class AndroidAudioPlaybackEngineFactory(
@@ -19,8 +19,8 @@ class AndroidAudioPlaybackEngineFactory(
         }
     )
 
-    override fun create(audioSource: TrackAudioSource): AudioPlaybackEngine {
-        return when (audioSource) {
+    override fun create(mediaItem: PlaybackMediaItem): AudioPlaybackEngine {
+        return when (val audioSource = mediaItem.audioSource) {
             is TrackAudioSource.LocalRawResource -> localRawResourceEngineFactory(audioSource.resId)
         }
     }

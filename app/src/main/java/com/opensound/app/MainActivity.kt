@@ -111,7 +111,7 @@ fun AudMoraApp(viewModel: AudMoraViewModel) {
     }
 
     AudioPlaybackEffect(
-        audioSource = viewModel.selectedAudioSource,
+        mediaItem = viewModel.selectedPlaybackMediaItem,
         isPlaying = uiState.isPlaying,
         seekRequest = uiState.playbackSeekRequest,
         onPlaybackSecondsChanged = viewModel::updatePlaybackSeconds,

@@ -41,8 +41,9 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
   - Avoid route strings in UI code.
 - `com.opensound.app.playback`
   - Playback interface and Compose side effects.
+  - `PlaybackMediaItem` as the app-facing description of the selected playable track: stable track id, title, artist, duration, and resolved audio source.
   - `AudioPlaybackEngine` is the app-facing contract.
-  - `AudioPlaybackEngineFactory` maps `TrackAudioSource` to the current engine implementation.
+  - `AudioPlaybackEngineFactory` maps a `PlaybackMediaItem` to the current engine implementation.
   - `AndroidMediaPlayerAudioEngine` is the current Android implementation.
   - This is a stepping stone toward a richer playback service, MediaSession, or Media3 layer.
 - `com.opensound.app.editor`
@@ -77,7 +78,9 @@ Track Studio drafts are accessed through `TrackStudioDraftRepository`, also keye
 
 UI and app state should not call Android `MediaPlayer` directly. They should describe intent: selected audio source, desired play/pause state, progress updates, seek requests, and completion.
 
-`AudioPlaybackEffect` translates that state into playback commands. The current engine is still `MediaPlayer`, but it is hidden behind `AudioPlaybackEngine` and selected through `AudioPlaybackEngineFactory`. This matters because real music apps usually outgrow the basic player quickly:
+`PlaybackMediaItem` is the playback layer's current media contract. It wraps the selected track's stable `TrackId`, display metadata, duration, and resolved `TrackAudioSource`. This matters because two tracks can temporarily share the same prototype audio file, but playback identity, history, notifications, queue state, cache keys, and future MediaSession metadata must still follow the track id.
+
+`AudioPlaybackEffect` translates playback state and the selected `PlaybackMediaItem` into playback commands. The current engine is still `MediaPlayer`, but it is hidden behind `AudioPlaybackEngine` and selected through `AudioPlaybackEngineFactory`. This matters because real music apps usually outgrow the basic player quickly:
 
 - background playback
 - lock-screen and notification controls

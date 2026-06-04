@@ -244,10 +244,41 @@ class AudMoraViewModelTest {
         assertEquals(listOf(track), state.tracks)
         assertEquals(track, state.selectedTrack)
         assertEquals(config, state.selectedAtmosphereConfig)
-        assertEquals(
-            TrackAudioSource.LocalRawResource(700),
-            viewModel.selectedAudioSource
+        val mediaItem = viewModel.selectedPlaybackMediaItem
+        assertEquals(track.id, mediaItem.id)
+        assertEquals(track.title, mediaItem.title)
+        assertEquals(track.artist, mediaItem.artist)
+        assertEquals(track.durationSeconds, mediaItem.durationSeconds, 0.001f)
+        assertEquals(TrackAudioSource.LocalRawResource(700), mediaItem.audioSource)
+    }
+
+    @Test
+    fun selectedPlaybackMediaItem_changesTrackIdentityEvenWhenAudioSourceMatches() {
+        val sharedAudioSource = TrackAudioSource.LocalRawResource(9)
+        val firstTrack = Track(
+            id = TrackId("first-track"),
+            title = "First Track",
+            artist = "Repository Artist",
+            audioSource = sharedAudioSource
         )
+        val secondTrack = Track(
+            id = TrackId("second-track"),
+            title = "Second Track",
+            artist = "Repository Artist",
+            audioSource = sharedAudioSource
+        )
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(listOf(firstTrack, secondTrack)),
+            atmosphereRepository = FakeAtmosphereRepository()
+        )
+
+        val initialMediaItem = viewModel.selectedPlaybackMediaItem
+        viewModel.selectTrackAndPlay(secondTrack)
+        val nextMediaItem = viewModel.selectedPlaybackMediaItem
+
+        assertEquals(firstTrack.id, initialMediaItem.id)
+        assertEquals(secondTrack.id, nextMediaItem.id)
+        assertEquals(initialMediaItem.audioSource, nextMediaItem.audioSource)
     }
 
     @Test
