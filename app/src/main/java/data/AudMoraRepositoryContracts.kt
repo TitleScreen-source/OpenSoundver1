@@ -52,3 +52,14 @@ interface AtmosphereRepository {
         config: AtmosphereConfig
     )
 }
+
+interface TrackStudioDraftRepository {
+    fun draftConfigFor(trackId: TrackId): AtmosphereConfig?
+
+    fun saveDraftConfig(
+        trackId: TrackId,
+        config: AtmosphereConfig
+    )
+
+    fun clearDraftConfig(trackId: TrackId)
+}

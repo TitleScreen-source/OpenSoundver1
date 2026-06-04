@@ -26,6 +26,25 @@ class TrackStudioSessionStateHolderTest {
     }
 
     @Test
+    fun startEditing_canRestoreDraftAgainstSavedConfig() {
+        val trackId = TrackId("track")
+        val savedConfig = AtmosphereConfig(presetName = "Saved")
+        val draftConfig = AtmosphereConfig(presetName = "Draft")
+        val holder = TrackStudioSessionStateHolder()
+
+        holder.startEditing(
+            trackId = trackId,
+            savedConfig = savedConfig,
+            draftConfig = draftConfig
+        )
+
+        assertEquals(trackId, holder.currentTrackId)
+        assertEquals(savedConfig, holder.state.value.savedConfig)
+        assertEquals(draftConfig, holder.state.value.draftConfig)
+        assertTrue(holder.state.value.isDirty)
+    }
+
+    @Test
     fun dispatch_updatesStateThroughReducer() {
         val holder = TrackStudioSessionStateHolder(
             initialState = TrackStudioEditorState(draftConfig = AtmosphereConfig())

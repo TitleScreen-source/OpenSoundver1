@@ -29,6 +29,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import com.opensound.app.data.AudMoraCatalogRepository
 import com.opensound.app.data.LocalAtmosphereRepositoryFactory
+import com.opensound.app.data.LocalTrackStudioDraftRepositoryFactory
 import com.opensound.app.data.LocalUserLibraryRepositoryFactory
 import com.opensound.app.navigation.AudMoraScreen
 import com.opensound.app.navigation.BottomNavigation
@@ -60,7 +61,8 @@ class MainActivity : ComponentActivity() {
                     context = this,
                     defaultConfigs = catalogRepository.initialAtmosphereConfigs()
                 ),
-                userLibraryRepository = LocalUserLibraryRepositoryFactory.create(this)
+                userLibraryRepository = LocalUserLibraryRepositoryFactory.create(this),
+                trackStudioDraftRepository = LocalTrackStudioDraftRepositoryFactory.create(this)
             )
         )[AudMoraViewModel::class.java]
 

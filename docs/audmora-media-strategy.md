@@ -56,7 +56,7 @@ The app should eventually separate storage into buckets:
 - streaming cache: temporary, automatically evicted
 - downloaded tracks: user-controlled, visible in settings
 - generated atmosphere previews: temporary, can be rebuilt
-- user drafts: durable until saved/deleted
+- user drafts: durable until saved, reset, discarded, or explicitly deleted
 - thumbnails: small, aggressively cached
 
 Each bucket should have a size limit and a clear deletion policy.
@@ -74,6 +74,8 @@ Atmospheres should be data-driven. A saved atmosphere should mostly contain:
 It should not duplicate heavy source media. If a visual scene needs large assets, store references and cache the actual files separately.
 
 In code, atmosphere saves should go through `AtmosphereRepository` by `TrackId`. The current Android app stores saved atmosphere overrides through `SharedPreferencesAtmosphereConfigStorage`; seed/tests use in-memory storage. The repository boundary is intentionally the future handoff point for Room/DataStore/API/cache storage and for storage limits.
+
+Unfinished Track Studio work should go through `TrackStudioDraftRepository` by `TrackId`, not through the saved atmosphere repository. Drafts are local recoverable work: dirty editor changes autosave, while save/reset/discard clears the draft for that track. This keeps the app friendly to experimentation without letting abandoned drafts become permanent storage growth.
 
 ## Build-size guardrails
 

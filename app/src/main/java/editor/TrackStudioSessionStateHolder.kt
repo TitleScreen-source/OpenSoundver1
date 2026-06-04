@@ -18,14 +18,29 @@ class TrackStudioSessionStateHolder(
 
     private var editingTrackId: TrackId? = null
 
+    val currentTrackId: TrackId?
+        get() = editingTrackId
+
     fun startEditing(
         trackId: TrackId,
         initialConfig: AtmosphereConfig
     ) {
+        startEditing(
+            trackId = trackId,
+            savedConfig = initialConfig,
+            draftConfig = initialConfig
+        )
+    }
+
+    fun startEditing(
+        trackId: TrackId,
+        savedConfig: AtmosphereConfig,
+        draftConfig: AtmosphereConfig
+    ) {
         editingTrackId = trackId
         _state.value = TrackStudioEditorState(
-            draftConfig = initialConfig,
-            savedConfig = initialConfig
+            draftConfig = draftConfig,
+            savedConfig = savedConfig
         )
     }
 

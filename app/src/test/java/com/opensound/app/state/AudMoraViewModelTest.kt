@@ -1,6 +1,7 @@
 package com.opensound.app.state
 
 import com.opensound.app.data.AtmosphereRepository
+import com.opensound.app.data.InMemoryTrackStudioDraftRepository
 import com.opensound.app.data.ProfileRepository
 import com.opensound.app.data.TrackFeedRepository
 import com.opensound.app.data.TrackRepository
@@ -18,6 +19,7 @@ import com.opensound.app.models.UserProfile
 import com.opensound.app.navigation.AudMoraScreen
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -286,12 +288,81 @@ class AudMoraViewModelTest {
     }
 
     @Test
+    fun openTrackStudio_restoresDraftFromDraftRepository() {
+        val track = testTrack("studio-draft-track")
+        val savedConfig = AtmosphereConfig(presetName = "Saved")
+        val draftConfig = AtmosphereConfig(presetName = "Restored Draft")
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = FakeAtmosphereRepository(track.id, savedConfig),
+            trackStudioDraftRepository = InMemoryTrackStudioDraftRepository(
+                initialDrafts = mapOf(track.id to draftConfig)
+            )
+        )
+
+        viewModel.openTrackStudio()
+
+        val editorState = viewModel.trackStudioEditorState.value
+        assertEquals(savedConfig, editorState.savedConfig)
+        assertEquals(draftConfig, editorState.draftConfig)
+        assertTrue(editorState.isDirty)
+    }
+
+    @Test
+    fun dispatchTrackStudioAction_autosavesDirtyDraft() {
+        val track = testTrack("studio-autosave-track")
+        val draftRepository = InMemoryTrackStudioDraftRepository()
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = FakeAtmosphereRepository(),
+            trackStudioDraftRepository = draftRepository
+        )
+        val draftConfig = AtmosphereConfig(presetName = "Autosaved Draft")
+
+        viewModel.openTrackStudio()
+        viewModel.dispatchTrackStudioAction(
+            TrackStudioEditorAction.DraftConfigChanged(draftConfig)
+        )
+
+        assertEquals(
+            viewModel.trackStudioEditorState.value.draftConfig,
+            draftRepository.draftConfigFor(track.id)
+        )
+    }
+
+    @Test
+    fun dispatchTrackStudioAction_clearsDraftWhenResetToSaved() {
+        val track = testTrack("studio-reset-track")
+        val savedConfig = AtmosphereConfig(presetName = "Saved")
+        val draftRepository = InMemoryTrackStudioDraftRepository()
+        val viewModel = AudMoraViewModel(
+            trackRepository = FakeTrackRepository(track),
+            atmosphereRepository = FakeAtmosphereRepository(track.id, savedConfig),
+            trackStudioDraftRepository = draftRepository
+        )
+
+        viewModel.openTrackStudio()
+        viewModel.dispatchTrackStudioAction(
+            TrackStudioEditorAction.DraftConfigChanged(
+                AtmosphereConfig(presetName = "Dirty Draft")
+            )
+        )
+        viewModel.dispatchTrackStudioAction(TrackStudioEditorAction.DraftReset)
+
+        assertEquals(savedConfig, viewModel.trackStudioEditorState.value.draftConfig)
+        assertFalse(viewModel.trackStudioEditorState.value.isDirty)
+        assertNull(draftRepository.draftConfigFor(track.id))
+    }
+
+    @Test
     fun saveTrackStudioAtmosphere_persistsEditorDraftAndReturnsToProfile() {
         val track = testTrack("studio-save-target")
         val atmosphereRepository = FakeAtmosphereRepository()
+        val draftRepository = InMemoryTrackStudioDraftRepository()
         val viewModel = AudMoraViewModel(
             trackRepository = FakeTrackRepository(track),
-            atmosphereRepository = atmosphereRepository
+            atmosphereRepository = atmosphereRepository,
+            trackStudioDraftRepository = draftRepository
         )
         val draftConfig = AtmosphereConfig(presetName = "Studio Draft")
 
@@ -306,6 +377,7 @@ class AudMoraViewModelTest {
         assertEquals(expectedSavedConfig, atmosphereRepository.atmosphereConfigFor(track.id))
         assertEquals(expectedSavedConfig, viewModel.uiState.value.selectedAtmosphereConfig)
         assertEquals(AudMoraScreen.ArtistProfile, viewModel.uiState.value.currentScreen)
+        assertNull(draftRepository.draftConfigFor(track.id))
     }
 
     @Test
@@ -339,9 +411,11 @@ class AudMoraViewModelTest {
     fun discardTrackStudioChangesAndClose_restoresSavedDraftAndClosesEditor() {
         val track = testTrack("discard-track")
         val savedConfig = AtmosphereConfig(presetName = "Saved")
+        val draftRepository = InMemoryTrackStudioDraftRepository()
         val viewModel = AudMoraViewModel(
             trackRepository = FakeTrackRepository(track),
-            atmosphereRepository = FakeAtmosphereRepository(track.id, savedConfig)
+            atmosphereRepository = FakeAtmosphereRepository(track.id, savedConfig),
+            trackStudioDraftRepository = draftRepository
         )
 
         viewModel.openTrackStudio()
@@ -356,6 +430,7 @@ class AudMoraViewModelTest {
         assertEquals(AudMoraScreen.ArtistProfile, viewModel.uiState.value.currentScreen)
         assertEquals(savedConfig, viewModel.trackStudioEditorState.value.draftConfig)
         assertFalse(viewModel.trackStudioEditorState.value.isDirty)
+        assertNull(draftRepository.draftConfigFor(track.id))
     }
 
     @Test

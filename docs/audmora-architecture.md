@@ -23,6 +23,7 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
   - Feed contracts for Home, Search, Library, Artist Profile, and User Profile track lists.
   - Profile and user library contracts for account-facing display data.
   - Atmosphere storage adapters: in-memory for seed/tests, SharedPreferences for current local editor saves.
+  - Track Studio draft storage adapters: in-memory for seed/tests, SharedPreferences for current local autosave.
   - User library storage adapters: in-memory for seed/tests, SharedPreferences for current local persistence.
   - Local catalog seed data and resource selection.
   - Local seed feed composition over the current catalog.
@@ -31,7 +32,7 @@ Media and app size strategy lives in `docs/audmora-media-strategy.md`. The short
 - `com.opensound.app.state`
   - App-level UI state and `AudMoraViewModel`.
   - User profile, featured artist profile, and user library summary as state data, not hardcoded screen text.
-  - Track Studio session state owned by `AudMoraViewModel` and exposed as `trackStudioEditorState`, including dirty draft and close confirmation state.
+  - Track Studio session state owned by `AudMoraViewModel` and exposed as `trackStudioEditorState`, including dirty draft, autosave restore, and close confirmation state.
   - `PlaybackQueue` for the current playback context, next/previous track movement, shuffle, and repeat mode.
   - Playback state reducer for track selection, play/pause, progress, queue movement, shuffle/repeat, seek, and completion.
   - MainActivity should delegate state transitions here instead of owning feature state.
@@ -67,6 +68,8 @@ Do not key app state by `Track.title`. Use `Track.id`.
 `Track.audioSource` is the current audio source metadata. Today it uses `TrackAudioSource.LocalRawResource` for prototype files in `res/raw`, and it is accessed through `TrackRepository`. `Track.durationSeconds` is prototype duration metadata in the catalog, used by playback UI and seek clamping. Later the source and duration can come from API metadata, Media3, a media id, or a cached file reference without making screens know where the audio comes from.
 
 Atmosphere scenes are accessed through `AtmosphereRepository`. The app-facing contract is shaped like durable per-track storage: read all known configs, read one config by `TrackId`, and save one config by `TrackId`. Seed/tests use `InMemoryAtmosphereConfigStorage`; the Android app currently uses `SharedPreferencesAtmosphereConfigStorage` through `StoredAtmosphereRepository`. Default catalog atmospheres and user-saved overrides stay separate, so a saved editor result can replace one track's visual without mutating catalog seed data. This prevents screens and ViewModels from becoming accidental storage layers.
+
+Track Studio drafts are accessed through `TrackStudioDraftRepository`, also keyed by `TrackId`. This is intentionally separate from `AtmosphereRepository`: a draft is unfinished local work, while an atmosphere save is the selected track's durable visual config. The Android app currently stores drafts in a separate SharedPreferences file through `LocalTrackStudioDraftRepositoryFactory`; tests use `InMemoryTrackStudioDraftRepository`. Dirty editor changes autosave into the draft repository, while reset, save, and discard clear the per-track draft. This keeps unfinished work recoverable without letting old drafts overwrite saved visual state or grow forever.
 
 `Track.visualMode` describes how the track should be rendered visually. A showcase/reels track is a visual mode, not a separate kind of audio logic. This keeps the reference content useful without making the product architecture depend on one demo case.
 
@@ -104,7 +107,7 @@ Track Studio is the future creative center of AudMora. It will likely grow into 
 - source assets
 - preview/playhead behavior
 
-The current screen is still large, but editor state now uses `TrackStudioEditorState`, `TrackStudioSection`, and `TrackStudioEditorAction`. State transitions live in `TrackStudioEditorReducer`; session state lives in `TrackStudioSessionStateHolder` and is owned by `AudMoraViewModel`; timeline rules live in `TrackStudioTimelineOperations`; text/character edit rules live in `TrackStudioLayerOperations`; timeline UI lives in `TrackStudioTimelinePanel`; editor section UI lives in `TrackStudioEditorSections`; shared Track Studio controls live in `TrackStudioComponents`. The session tracks both `draftConfig` and `savedConfig`, so `isDirty`, reset-to-saved, save, discard, and close confirmation stay out of the Compose screen. This matters because section strings such as `Scene` or `Timing`, clip operations such as duplicate/delete/trim, layer rules such as text length or drag bounds, and timeline controls are separate reasons to change. Keeping product rules outside Compose makes them testable, and keeping large UI domains in their own files makes the editor easier to grow without losing the showcase-quality visual direction.
+The current screen is still large, but editor state now uses `TrackStudioEditorState`, `TrackStudioSection`, and `TrackStudioEditorAction`. State transitions live in `TrackStudioEditorReducer`; session state lives in `TrackStudioSessionStateHolder` and is owned by `AudMoraViewModel`; timeline rules live in `TrackStudioTimelineOperations`; text/character edit rules live in `TrackStudioLayerOperations`; timeline UI lives in `TrackStudioTimelinePanel`; editor section UI lives in `TrackStudioEditorSections`; shared Track Studio controls live in `TrackStudioComponents`. The session tracks both `draftConfig` and `savedConfig`, so `isDirty`, reset-to-saved, save, discard, autosave, per-track restore, and close confirmation stay out of the Compose screen. This matters because section strings such as `Scene` or `Timing`, clip operations such as duplicate/delete/trim, layer rules such as text length or drag bounds, and timeline controls are separate reasons to change. Keeping product rules outside Compose makes them testable, and keeping large UI domains in their own files makes the editor easier to grow without losing the showcase-quality visual direction.
 
 ## Growth rules for future sessions
 
@@ -123,5 +126,5 @@ The current screen is still large, but editor state now uses `TrackStudioEditorS
 - Replace `SeedTrackFeedRepository` with real Home/Search/Library/Profile feed implementations when the app gets API, Room, playlists, likes, or recommendations.
 - Extend `UserLibraryRepository` from saved track ids to liked tracks, playlists, folders, downloads, and sync conflict rules.
 - Promote `SharedPreferencesUserLibraryStorage` to DataStore or Room when library state starts carrying richer metadata than a small ordered id list.
+- Decide when Track Studio drafts need timestamps, explicit draft names, or cloud sync conflict rules.
 - Decide when to migrate from `MediaPlayer` to Media3/ExoPlayer.
-- Add Track Studio autosave and per-track draft restore on top of the current dirty/discard lifecycle.

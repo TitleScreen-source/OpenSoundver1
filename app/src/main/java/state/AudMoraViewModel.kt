@@ -5,12 +5,14 @@ import androidx.lifecycle.ViewModelProvider
 import com.opensound.app.data.AtmosphereRepository
 import com.opensound.app.data.AudMoraCatalogRepository
 import com.opensound.app.data.InMemoryAtmosphereRepository
+import com.opensound.app.data.InMemoryTrackStudioDraftRepository
 import com.opensound.app.data.ProfileRepository
 import com.opensound.app.data.SeedTrackFeedRepository
 import com.opensound.app.data.SeedProfileRepository
 import com.opensound.app.data.SeedUserLibraryRepository
 import com.opensound.app.data.TrackFeedRepository
 import com.opensound.app.data.TrackRepository
+import com.opensound.app.data.TrackStudioDraftRepository
 import com.opensound.app.data.UserLibraryRepository
 import com.opensound.app.editor.TrackStudioEditorAction
 import com.opensound.app.editor.TrackStudioEditorState
@@ -30,7 +32,8 @@ class AudMoraViewModel(
     private val atmosphereRepository: AtmosphereRepository,
     private val trackFeedRepository: TrackFeedRepository = SeedTrackFeedRepository(trackRepository),
     private val profileRepository: ProfileRepository = SeedProfileRepository(),
-    private val userLibraryRepository: UserLibraryRepository = SeedUserLibraryRepository()
+    private val userLibraryRepository: UserLibraryRepository = SeedUserLibraryRepository(),
+    private val trackStudioDraftRepository: TrackStudioDraftRepository = InMemoryTrackStudioDraftRepository()
 ) : ViewModel() {
     constructor(
         catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository()
@@ -41,7 +44,8 @@ class AudMoraViewModel(
         ),
         trackFeedRepository = SeedTrackFeedRepository(catalogRepository),
         profileRepository = SeedProfileRepository(),
-        userLibraryRepository = SeedUserLibraryRepository()
+        userLibraryRepository = SeedUserLibraryRepository(),
+        trackStudioDraftRepository = InMemoryTrackStudioDraftRepository()
     )
 
     private val _uiState = MutableStateFlow(
@@ -69,9 +73,14 @@ class AudMoraViewModel(
 
     fun openTrackStudio() {
         val state = _uiState.value
+        val savedConfig = state.selectedAtmosphereConfig
+        val draftConfig = trackStudioDraftRepository.draftConfigFor(state.selectedTrack.id)
+            ?: savedConfig
+
         trackStudioStateHolder.startEditing(
             trackId = state.selectedTrack.id,
-            initialConfig = state.selectedAtmosphereConfig
+            savedConfig = savedConfig,
+            draftConfig = draftConfig
         )
         selectScreen(AudMoraScreen.TrackStudio)
     }
@@ -99,15 +108,22 @@ class AudMoraViewModel(
 
     fun dispatchTrackStudioAction(action: TrackStudioEditorAction) {
         trackStudioStateHolder.dispatch(action)
+        syncTrackStudioDraft()
     }
 
     fun saveTrackStudioAtmosphere() {
         val savedConfig = trackStudioStateHolder.saveConfig()
         trackStudioStateHolder.markSaved(savedConfig)
+        trackStudioStateHolder.currentTrackId?.let { trackId ->
+            trackStudioDraftRepository.clearDraftConfig(trackId)
+        }
         saveAtmosphere(savedConfig)
     }
 
     fun discardTrackStudioChangesAndClose() {
+        trackStudioStateHolder.currentTrackId?.let { trackId ->
+            trackStudioDraftRepository.clearDraftConfig(trackId)
+        }
         trackStudioStateHolder.discardChanges()
         selectScreen(AudMoraScreen.ArtistProfile)
     }
@@ -259,6 +275,20 @@ class AudMoraViewModel(
         }
     }
 
+    private fun syncTrackStudioDraft() {
+        val trackId = trackStudioStateHolder.currentTrackId ?: return
+        val editorState = trackStudioStateHolder.state.value
+
+        if (editorState.isDirty) {
+            trackStudioDraftRepository.saveDraftConfig(
+                trackId = trackId,
+                config = editorState.draftConfig
+            )
+        } else {
+            trackStudioDraftRepository.clearDraftConfig(trackId)
+        }
+    }
+
     companion object {
         fun factory(
             catalogRepository: AudMoraCatalogRepository = AudMoraCatalogRepository(),
@@ -266,14 +296,16 @@ class AudMoraViewModel(
                 initialConfigs = catalogRepository.initialAtmosphereConfigs()
             ),
             profileRepository: ProfileRepository = SeedProfileRepository(),
-            userLibraryRepository: UserLibraryRepository = SeedUserLibraryRepository()
+            userLibraryRepository: UserLibraryRepository = SeedUserLibraryRepository(),
+            trackStudioDraftRepository: TrackStudioDraftRepository = InMemoryTrackStudioDraftRepository()
         ): ViewModelProvider.Factory {
             return factory(
                 trackRepository = catalogRepository,
                 atmosphereRepository = atmosphereRepository,
                 trackFeedRepository = SeedTrackFeedRepository(catalogRepository),
                 profileRepository = profileRepository,
-                userLibraryRepository = userLibraryRepository
+                userLibraryRepository = userLibraryRepository,
+                trackStudioDraftRepository = trackStudioDraftRepository
             )
         }
 
@@ -282,7 +314,8 @@ class AudMoraViewModel(
             atmosphereRepository: AtmosphereRepository,
             trackFeedRepository: TrackFeedRepository = SeedTrackFeedRepository(trackRepository),
             profileRepository: ProfileRepository = SeedProfileRepository(),
-            userLibraryRepository: UserLibraryRepository = SeedUserLibraryRepository()
+            userLibraryRepository: UserLibraryRepository = SeedUserLibraryRepository(),
+            trackStudioDraftRepository: TrackStudioDraftRepository = InMemoryTrackStudioDraftRepository()
         ): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -293,7 +326,8 @@ class AudMoraViewModel(
                             atmosphereRepository = atmosphereRepository,
                             trackFeedRepository = trackFeedRepository,
                             profileRepository = profileRepository,
-                            userLibraryRepository = userLibraryRepository
+                            userLibraryRepository = userLibraryRepository,
+                            trackStudioDraftRepository = trackStudioDraftRepository
                         ) as T
                     }
 
